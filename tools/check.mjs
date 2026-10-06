@@ -58,7 +58,7 @@ else ok("script 内每行双引号都配平");
 let data = null;
 try {
   const ctx = vm.createContext(sandbox);
-  vm.runInContext(js + "\n;globalThis.__OUT = { RESULTS, NODES, CATALOG, META };", ctx);
+  vm.runInContext(js + "\n;globalThis.__OUT = { RESULTS, NODES, CATALOG, META, EVENTS };", ctx);
   data = ctx.__OUT;
   ok("脚本可执行，数据取到");
 } catch (e) {
@@ -66,7 +66,7 @@ try {
 }
 
 if (data) {
-  const { RESULTS, NODES, CATALOG, META } = data;
+  const { RESULTS, NODES, CATALOG, META, EVENTS } = data;
 
   // 5a. 跳转目标存在
   let broken = [];
@@ -224,6 +224,25 @@ if (data) {
   const unreachable = ["claude-code","zhipu-plan","chat"].filter(l => !withAck.has(l));
   unreachable.length ? bad("拦截后无法恢复: " + unreachable.join(", "))
                      : ok("拦截可恢复：确认接受后 claude-code / zhipu-plan / chat 仍可到达");
+
+  // 5n. 事件清单（EVENTS）结构与来源
+  let evBad = [];
+  if (!Array.isArray(EVENTS) || !EVENTS.length) evBad.push("EVENTS 为空");
+  (EVENTS || []).forEach((g, gi) => {
+    if (!g.vendor) evBad.push("组 " + gi + " 缺 vendor");
+    if (!Array.isArray(g.items) || !g.items.length) evBad.push("组 " + gi + " 缺 items");
+    (g.items || []).forEach((it, ii) => {
+      const at = g.vendor + "[" + ii + "]";
+      if (!it.d) evBad.push(at + " 缺日期");
+      if (!it.t) evBad.push(at + " 缺标题");
+      if (!it.x || it.x.length < 20) evBad.push(at + " 说明过短");
+      if (!it.s || !it.s.t) evBad.push(at + " 缺来源名");
+      else if (!/^https?:\/\//.test(it.s.u || "")) evBad.push(at + " 来源链接非法: " + it.s.u);
+    });
+  });
+  const evCount = (EVENTS || []).reduce((n, g) => n + g.items.length, 0);
+  evBad.length ? bad("事件清单问题: " + evBad.join("; "))
+               : ok("事件清单 " + EVENTS.length + " 组 / " + evCount + " 条，全部带来源链接");
 
   console.log("叶子: " + [...leaves].sort().join(", "));
 }

@@ -151,6 +151,21 @@ ctx.restart(); [0,0,2].forEach(i => ctx.pick(i));                // → dsh-desk
 pn = R();
 expect("其它卡片没有这条附注", !pn.includes("博馍馍"));
 
+console.log("\n== 厂商事件清单 ==");
+["screen-events","evBody"].forEach(id => { if (!els.has(id)) makeEl(id); });
+ctx.renderEvents();
+let ev = els.get("evBody").innerHTML || "";
+expect("事件清单能渲染", ev.length > 2000, ev.length + " 字符");
+expect("含 Anthropic 组", ev.includes("Anthropic / Claude"));
+expect("含智谱组", ev.includes("智谱 / ZCode"));
+expect("含「官方承认」那一条", ev.includes("官方承认机制存在"));
+expect("含隐写回执机制描述", ev.includes("做隐写") || ev.includes("隐写回传"));
+expect("含 CNVDB 通报", ev.includes("CNVDB"));
+expect("含 15 亿美元版权和解", ev.includes("15 亿美元"));
+expect("含国产问题（DeepSeek）", ev.includes("DeepSeek"));
+expect("每条都有来源链接", (ev.match(/来源：/g) || []).length >= 15, "来源×" + (ev.match(/来源：/g) || []).length);
+expect("无 undefined", !ev.includes("undefined"));
+
 console.log("\n== 逐叶子渲染（从「全部候选」直接打开、无答题路径） ==");
 const all = Object.keys(vm.runInContext("RESULTS", ctx));
 let n = 0;

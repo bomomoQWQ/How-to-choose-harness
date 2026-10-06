@@ -171,6 +171,20 @@
   .cat h4{margin:0 0 4px;font-size:15px}
   .cat .who{font-size:11.5px;color:var(--acc2);letter-spacing:.6px;font-weight:700}
   .cat p{margin:8px 0 0;font-size:13px;color:var(--fg2)}
+  .evgrp{margin-top:24px}
+  .evgrp > h4{font-size:15px;margin:0 0 10px;color:var(--fg)}
+  .evgrp > h4 span{font-size:12px;color:var(--fg3);font-weight:400;margin-left:8px}
+  .ev{position:relative;padding:0 0 14px 20px;border-left:1px solid var(--line);margin-left:5px}
+  .ev:last-child{border-left-color:transparent;padding-bottom:2px}
+  .ev::before{
+    content:"";position:absolute;left:-4px;top:6px;width:7px;height:7px;border-radius:50%;
+    background:var(--line2);border:1px solid var(--bg)
+  }
+  .ev.bad::before{background:var(--warn)}
+  .ev .d{font-size:11.5px;color:var(--fg3);font-family:ui-monospace,monospace}
+  .ev .t{font-size:14px;font-weight:600;color:var(--fg);margin:2px 0 3px}
+  .ev .x{font-size:13px;color:var(--fg2);line-height:1.6}
+  .ev .s{font-size:12px;margin-top:5px;display:inline-block}
   footer{margin-top:30px;font-size:12.5px;color:var(--fg3);line-height:1.8}
   .hide{display:none !important}
   @media (max-width:640px){
@@ -192,6 +206,7 @@
       <p>回答几个问题，直接给你该装的那一个</p>
     </div>
     <div class="spacer"></div>
+    <button class="ghost" id="btnEvents">厂商事件清单</button>
     <button class="ghost" id="btnCatalog">全部候选</button>
   </header>
 
@@ -247,6 +262,18 @@
     </div>
   </section>
 
+  <section id="screen-events" class="panel hide">
+    <h2>厂商事件清单</h2>
+    <p class="lead">
+      每条都给出来源，按时间排。列这些不是为了骂谁，而是因为<strong>选工具本质上是在选你要信任谁</strong>——
+      那就把各家的记录摆出来，你自己判断。国产、国外一视同仁，DeepSeek 和 OpenAI 的问题也在里面。
+    </p>
+    <div id="evBody"></div>
+    <div class="row">
+      <button class="btn sec" id="btnBackHome2">← 回到开始</button>
+    </div>
+  </section>
+
   <footer>
     <p>
       <b>说明：</b>本页是个人经验整理，不是官方文档。命令与链接以各项目官方页面为准。
@@ -254,9 +281,11 @@
     </p>
     <p>
       <b>安全事件的时间线（本页据此写了风险提示，事实请以官方通报与报道原文为准）：</b>
-      2026 年 7 月，Grok Build 被指上传整个代码仓库；同月，Claude Code 被指通过替换系统提示词中撇号的 Unicode 编码探测用户所在地域，工信部下属平台随后发布风险提示，多家企业内部禁用；
+      2026 年 7 月，Grok Build 被指上传整个代码仓库；2026 年 4 月起的 Claude Code 被逆向发现内置隐蔽识别逻辑（读本地时区、比对含国内大厂域名的清单，靠改系统提示词中日期文本的标点做隐写回传，不产生额外网络请求），
+      Anthropic 技术团队成员已公开承认该机制存在，中国国家漏洞库（CNVDB）通报受影响版本 2.1.91–2.1.196 为安全后门漏洞，阿里内部要求全员卸载，同期还有强制人脸实名与大规模封号；2026 年 7 月 21 日，其 15 亿美元版权和解获批；
       2026 年 9 月，ZCode 被发现把包含 .git 历史、reflog 与云凭证的整个工作区静默打包上传，智谱致歉、移除上传链路并宣布开源——
       但其开源的完整性受到质疑：仓库历史被洗净、锁 PR 关 Issue，属单向投喂（社区称「阴阳开源」）。
+      页首「厂商事件清单」按时间列了全部记录，每条都给出来源；DeepSeek、OpenAI 的问题同样在里面。
       信息基线：2026 年 10 月。
     </p>
   </footer>
@@ -303,7 +332,7 @@ const RESULTS = {
     prep: ["一台能跑代理抓包或虚拟机的机器（可选，但非常有用）。"],
     steps: [
       {t:"<b>先认清事实</b>：用云端模型就意味着你的代码和文件必然离开本机。真正要问的是：谁看得到、留多久、你事前知不知道。"},
-      {t:"<b>看三个真实发生过的例子</b>（共同点：都发生在用户看不见的地方）：2026 年 7 月，Grok Build 被指把用户整个代码仓库上传到云存储，即使关掉「改进模型」选项上传仍可能继续；同月，Claude Code 被指通过替换系统提示词里撇号的 Unicode 编码来编码检测结果、识别用户所在地域，随后工信部下属平台发布风险提示，多家企业内部禁用；2026 年 9 月，ZCode 被发现把包含 .git 全历史、大文件缓存与云凭证的整个工作区打包上传（加密包密钥由服务端下发），智谱随后致歉、移除上传链路、开源代码库并接受第三方审计。"},
+      {t:"<b>看三个真实发生过的例子</b>（共同点：都发生在用户看不见的地方）：2026 年 7 月，Grok Build 被指把用户整个代码仓库上传到云存储，即使关掉「改进模型」选项上传仍可能继续；同样是 2026 年，Claude Code 从 v2.1.91 起内置隐蔽识别逻辑——读本地时区、比对含国内大厂域名的内置清单，命中后<b>靠修改系统提示词里日期文本的标点做隐写</b>回传结果，全程不产生额外网络请求，因此潜伏近三个月才被逆向发现，官方随后承认该机制存在，中国国家漏洞库（CNVDB）则通报为安全后门漏洞；2026 年 9 月，ZCode 被发现把包含 .git 全历史、大文件缓存与云凭证的整个工作区打包上传（加密包密钥由服务端下发），智谱随后致歉、移除上传链路、开源代码库并接受第三方审计。"},
       {t:"<b>总结规律</b>：厂商最初的解释都是「功能需要」，而最后的刹车几乎都来自外部——开发者的逆向分析、监管介入、司法审查。所以别把安全感寄托在厂商自律上。"},
       {t:"<b>用三条硬措施替代信任</b>：一是沙箱或虚拟机里跑 agent；二是密钥隔离（专用 key、设额度上限、定期轮换）；三是审查出站流量（代理抓包看一眼它到底在往外传什么）。"},
       {t:"<b>优先选能审计的</b>：代码开源、有第三方安全审计、有明确零留存承诺的项目，至少让「它到底做了什么」有据可查。但要加一条判断标准：<b>看放出来的是不是完整、未剥离历史、且真正对所有人开放的那一份</b>——只读不可参与、历史被洗净的「开源」，审计价值要打折。"},
@@ -665,7 +694,7 @@ const RESULTS = {
   "claude-code": {
     name: "Claude Code（或 Codex CLI）：跟着你已有的订阅走",
     tagline: "已经付了 Claude 或 ChatGPT 的钱，就别再单买一份额度：直接用官方自家的 agent。",
-    badges: [{t:"体验最整",c:"ok"},{t:"有安全与封号争议",c:"warn"},{t:"支付门槛高",c:"warn"}],
+    badges: [{t:"体验最整",c:"ok"},{t:"机制已被官方承认",c:"warn"},{t:"国家漏洞库已通报",c:"warn"},{t:"支付门槛高",c:"warn"}],
     prep: [
       "Claude 或 ChatGPT 的订阅（Pro / Max / Plus 一类），或对应的 API 额度。",
       "终端环境加 Node（Claude Code 走 npm 安装）。"
@@ -681,7 +710,9 @@ const RESULTS = {
     links: [
       {t:"Claude Code",u:"https://docs.claude.com/en/docs/claude-code/overview"},
       {t:"Codex CLI",u:"https://github.com/openai/codex"},
-      {t:"环球时报社评：警惕 AI 时代的特洛伊木马",u:"http://en.people.cn/n3/2026/0710/c90000-20476592.html"}
+      {t:"UC Today：中国把 Claude Code 列为安全风险",u:"https://uctoday.com/china-calls-claude-code-a-security-risk-amid-deepening-anthropic-alibaba-dispute"},
+      {t:"观察者网：官方承认植入隐蔽标记",u:"https://m.163.com/dy/article/L0U4FKNP051481US.html"},
+      {t:"15 亿美元版权和解（中国文字著作权协会）",u:"http://prccopyright.org.cn/staticnews/2026-07-27/260727103329492/1.html"}
     ],
     personal: { by:"博馍馍", text: PERSONAL_NOTE },
     alts: ["zhipu-plan","opencode","cn-cli"],
@@ -692,7 +723,7 @@ const RESULTS = {
       mixed: "不同系统的登录态和授权是分开的，别在多个环境反复切换账号，容易触发风控。"
     },
     pitfalls: [
-      "<b>争议本身要讲清楚</b>：2026 年 4–6 月的多个版本被指在未获同意的情况下回传用户信息，工信部下属国家漏洞库发布过安全后门预警；后续报道指出它是通过替换系统提示词里撇号的 Unicode 编码来编码检测结果、识别用户所在地域，工信部下属平台据此发布风险提示，包括阿里在内的多家企业内部禁用。Anthropic 方面辩称是为了防止账号滥用与模型蒸馏。无论你采信哪一方，<b>结论一样：用之前查最新通报与官方回应，别在主力生产机上裸用</b>。",
+      "<b>先看事实，别看立场：</b>Claude Code 从 2026 年 4 月发布的 v2.1.91 起内置了一套隐蔽识别逻辑——读本地时区（重点比对上海与乌鲁木齐）、把代理域名与一份含百度、字节、腾讯、京东、月之暗面、MiniMax、阶跃星辰等域名的内置清单比对；命中后<b>靠修改系统提示词里日期文本的标点做隐写</b>把结果回传，不产生额外网络请求，因此潜伏了近三个月没被发现。Anthropic 技术团队成员已在 X 上公开承认该机制存在，称是 3 月上线、防账号转售与防蒸馏的「实验」，并否认是后门；但中国国家漏洞库（CNVDB）已正式通报为「安全后门漏洞」，指明受影响版本 2.1.91 至 2.1.196。<b>也就是说，争议已经从「媒体指控」变成了「官方承认 + 政府通报」</b>。完整记录（封号、人脸实名、15 亿美元版权和解）见页首「厂商事件清单」。",
       "<b>封号与 KYC</b>：社区里已有大量封号自救与防封指南，说明账号稳定性对大陆用户是个现实问题。别把重要工作流押在一个可能突然登不上的账号上。",
       "<b>支付门槛</b>：订阅需要外卡或特殊渠道；代充违反条款且封号后无申诉。付款不便时，走国产订阅（如智谱 GLM Coding Plan）比走中转或代充干净得多。",
       "订阅型额度通常有<b>窗口限制</b>（几小时内的用量上限），跑大任务时会被卡住，别在赶工时才发现。"
@@ -789,7 +820,7 @@ const META = {
   "imbot-hosted":  { open:true,  level:"cloud", data:"同自建机器人：框架可控，模型侧仍是云端处理。" },
   opencode:        { open:true,  level:"cloud", data:"代码公开可审计；模型可换成任意一家甚至本地模型，数据去向由你自己选。" },
   "cn-cli":        { open:true,  level:"cloud", data:"代码公开可审计；接国产模型，数据不出境这一点通常更容易满足合规要求。" },
-  "claude-code":   { open:false, level:"warn",  data:"2026 年 4–6 月版本被指未获同意回传信息，后续报道指其用替换撇号 Unicode 的方式探测用户地域；工信部下属平台发过风险提示，多家企业内部禁用。" },
+  "claude-code":   { open:false, level:"warn",  data:"闭源。2026 年 4 月 v2.1.91 起内置隐蔽识别逻辑：读本地时区（比对上海与乌鲁木齐）、比对含百度字节腾讯等域名的内置清单，命中后靠改系统提示词中日期文本的标点做隐写回传，无额外网络请求。技术团队成员已在 X 公开承认该「实验」存在；中国国家漏洞库（CNVDB）通报受影响版本 2.1.91–2.1.196 为「安全后门漏洞」，阿里内部要求全员卸载；另有强制人脸实名（Persona）与大规模封号；2026 年 7 月因用盗版资源库训练数据，15 亿美元版权和解获批。" },
   "zhipu-plan":    { open:"disputed", level:"warn", data:"2026 年 9 月其自家工具被发现静默打包整个工作区（含 Git 全历史、reflog、LFS 缓存）上传到云 OSS，加密包公钥由服务端下发、用户自己都无法解密，且默认开启、界面无关闭项；事后移除上传链路并宣称开源，但被指开源仓库历史被洗净、锁 PR 关 Issue，属单向投喂（社区称「阴阳开源」）。额度侧仍是云端处理。" },
   "relay-risk":    { open:null,  level:"warn",  advice:"avoid", data:"中转方能看到你发给模型的全部内容，已有公开测评指出存在掺水与投毒。" }
 };
@@ -1016,14 +1047,108 @@ const CATALOG = [
 ];
 
 /* =========================================================================
-   4. 逻辑
+   4. 厂商事件清单（每条都带来源；国产国外一视同仁）
+   ========================================================================= */
+const EVENTS = [
+  {
+    vendor: "Anthropic / Claude（美国）",
+    note: "本页对它的风险描述，主要来自这一组记录",
+    items: [
+      { d:"2025-09", t:"服务条款加码：禁「不受支持地区」控股实体",
+        x:"明确禁止被不受支持地区（含中国）直接或间接控股超 50% 的企业或组织使用其服务。此后字节跳动旗下在新加坡注册的 Trae 以「服务中断」为由移除 Claude 模型访问，腾讯 CodeBuddy 国际版也下架 Claude 相关模型。",
+        s:{t:"观察者网（网易转载）",u:"https://m.163.com/dy/article/L0U4FKNP051481US.html"} },
+      { d:"2026-04", t:"Claude Code v2.1.91 起内置隐蔽识别逻辑", bad:true,
+        x:"读取本地系统时区（重点比对上海与乌鲁木齐时区），并把代理域名与一份内置清单比对——清单覆盖百度、字节跳动、腾讯、京东、月之暗面、MiniMax、阶跃星辰等中国科技公司与 AI 实验室的域名特征，部分企业的内网域名也未被放过。",
+        s:{t:"观察者网",u:"https://m.163.com/dy/article/L0U4FKNP051481US.html"} },
+      { d:"2026-04", t:"引入第三方身份核验，要求人脸实名", bad:true,
+        x:"由核验服务商 Persona 执行：被标记为「高风险」的用户需要上传政府颁发的身份证件并完成实时人脸核验。这种「查户口」式验证引发了全球用户的强烈反弹。",
+        s:{t:"观察者网",u:"https://m.163.com/dy/article/L0U4FKNP051481US.html"} },
+      { d:"2026-06 底", t:"大规模封禁中国相关账号", bad:true,
+        x:"无论以 VPN 规避地域限制、走第三方 API 中转，还是用海外注册壳公司、云服务商间接接入，均被无预警封禁。风控不只看 IP：VPN 节点频繁跳动、曾连接过中国境内酒店或公司 WiFi、近期有中国出差记录，都可能被判为高风险账号。一家总部在美国、110 名员工的农业科技公司，因组织内某个账号触发规则而被整体封号。",
+        s:{t:"观察者网",u:"https://m.163.com/dy/article/L0U4FKNP051481US.html"} },
+      { d:"2026-07", t:"回传方式：靠改标点做隐写，不产生额外网络请求", bad:true,
+        x:"每次向服务器发送请求前，系统提示词中都固定附带一行日期文本；一旦本地检测命中中国相关特征，程序就对这行文字做两处肉眼几乎无法察觉的修改。服务器端只需扫描文本中的编码差异即可完成身份判定，不在流量层面留痕——这也是该机制能潜伏近三个月未被发现的关键。",
+        s:{t:"观察者网",u:"https://m.163.com/dy/article/L0U4FKNP051481US.html"} },
+      { d:"2026-07", t:"官方承认机制存在（关键一条）", bad:true,
+        x:"Anthropic 技术团队成员 Thariq Shihipar 在 X 平台公开回应：该机制确实存在，是公司今年 3 月上线的一项「实验」，目的是防止未授权转售商滥用账号、防范模型蒸馏攻击，移除工作已排入下一个版本。公司否认这是恶意的间谍软件或后门，坚持其属于反滥用措施。",
+        s:{t:"UC Today",u:"https://uctoday.com/china-calls-claude-code-a-security-risk-amid-deepening-anthropic-alibaba-dispute"} },
+      { d:"2026-07", t:"中国国家漏洞库（CNVDB）正式通报", bad:true,
+        x:"将其列为存在「安全后门漏洞」，指受影响版本 2.1.91 至 2.1.196 可在未获用户明确同意的情况下向服务器传输用户数据，建议卸载受影响版本或升级；提示的下游风险包括数据泄露、知识产权暴露与企业安全问题。最初由阿里工程师逆向发现。",
+        s:{t:"UC Today",u:"https://uctoday.com/china-calls-claude-code-a-security-risk-amid-deepening-anthropic-alibaba-dispute"} },
+      { d:"2026-07-10", t:"阿里内部列入高风险软件名单，要求全员卸载", bad:true,
+        x:"要求员工在该日期前卸载包括 Sonnet、Opus、Fable 等模型系列与 Claude Code 在内的 Agent 产品，并推荐自家 Qoder 作为替代。这把问题从「还能不能用」升级成了本地环境信息、企业代码安全与供应链信任问题。",
+        s:{t:"UC Today",u:"https://uctoday.com/china-calls-claude-code-a-security-risk-amid-deepening-anthropic-alibaba-dispute"} },
+      { d:"2026-07-21", t:"15 亿美元版权和解获批", bad:true,
+        x:"美国联邦法院最终批准了 Anthropic 与作者群体的 15 亿美元版权和解。起因不是生成内容，而是训练数据来源：公司从 LibGen 等被广泛认为含大量盗版内容的资源库下载了数十万册图书、存于内部中央资料库用于模型开发，涉及约 48 万余部作品，超 90% 权利人已参与索赔。该金额创下美国版权集体诉讼和解的新纪录；部分作者退出集体和解、保留单独起诉的权利。",
+        s:{t:"中国文字著作权协会（转 IPCC）",u:"http://prccopyright.org.cn/staticnews/2026-07-27/260727103329492/1.html"} },
+      { d:"2026-06", t:"与阿里的蒸馏争议（上述监控的动机背景）",
+        x:"Anthropic 指控阿里巴巴进行大规模模型蒸馏，并寻求美国政府介入。报道认为这直接影响了它上线监控机制的决定。",
+        s:{t:"UC Today",u:"https://uctoday.com/china-calls-claude-code-a-security-risk-amid-deepening-anthropic-alibaba-dispute"} },
+      { d:"2026-06", t:"美国政府也限制过它的前沿模型",
+        x:"因存在可被越狱的安全缺陷，美国政府禁止了其最新前沿模型 Mythos（后以更受限的方式恢复）。两边政府同时施压，是理解这家公司处境的背景。",
+        s:{t:"UC Today",u:"https://uctoday.com/china-calls-claude-code-a-security-risk-amid-deepening-anthropic-alibaba-dispute"} }
+    ]
+  },
+  {
+    vendor: "智谱 / ZCode（中国）",
+    note: "本页「开源存疑」这个判定的依据",
+    items: [
+      { d:"2025-05", t:"被点名通报：收集个人信息超出授权范围", bad:true,
+        x:"国家网络与信息安全信息通报中心点名通报智谱清言「实际收集的个人信息超出用户授权范围」，同期被通报的还有 Kimi。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} },
+      { d:"2026-09-18", t:"静默打包整个工作区并尝试上传", bad:true,
+        x:"开发者 ferstar 清理磁盘时发现 ~/.zcode 占了 700 多 MB，其中是一个 313MB 加密包，装着其约 10GB 商业项目的核心资产与云服务凭证，上传失败并重试了 564 次。逆向确认：只要处于登录状态，ZCode 就会在后台把整个工作区加密打包上传到阿里云 OSS，内容包括完整 Git 历史、LFS 大文件缓存、reflog 与部分全局开发配置；RSA 公钥由服务端动态下发、私钥只在云端，用户自己都解不开。该机制默认开启，界面上找不到关闭项。",
+        s:{t:"新浪财经",u:"https://finance.sina.com.cn/roll/2026-10-01/doc-initstui1351408.shtml"} },
+      { d:"2026-09-18/19", t:"致歉并移除上传链路",
+        x:"数小时内致歉，把问题归因于上线初期默认开启的「代码库索引」功能；v3.14.0 修复了「仓库百科异常上传」，开发者复核确认上传链路已移除、相关接口已下线。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} },
+      { d:"2026-09-21", t:"宣布开源，但被指「阴阳开源」", bad:true,
+        x:"智谱宣布开源 ZCode 代码库，并引入中国信通院与绿盟科技做第三方安全审计。但率先披露此事的开发者复核后指出：仓库历史被彻底洗净，而且锁了 PR、关了 Issue，属于单向投喂式的开源——能看、不能参与，也无法确认放出来的就是实际运行的那份代码。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} },
+      { d:"2026-09-28", t:"补偿方案，以及仍然没回答的问题",
+        x:"发放周额度与 5 小时额度重置卡、限时每日发放 Token 额度。官方未回应的追问：立即销毁如何从外部证明、云端到底留存了什么、开源会不会带上被捕获的旧版上传 sidecar；而且历史数据的生命周期无法靠事后单次审计倒推自证。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} }
+    ]
+  },
+  {
+    vendor: "其它厂商",
+    note: "一视同仁：不是只有国外的会出事，也不是只有国产的会出事",
+    items: [
+      { d:"2026-07", t:"xAI Grok Build：整个代码仓库被上传", bad:true,
+        x:"安全研究人员抓包发现，该工具会把用户整个代码仓库上传至谷歌云存储；即使关闭「改进模型」选项，上传行为仍可能继续。事件最终以马斯克承诺删除此前上传到 xAI 的所有用户数据、开源 84 万行代码收场。",
+        s:{t:"新浪财经",u:"https://finance.sina.com.cn/roll/2026-10-01/doc-initstui1351408.shtml"} },
+      { d:"2025", t:"DeepSeek：因 GDPR 合规问题被意大利监管机构质疑",
+        x:"意大利监管机构就 GDPR 合规问题对 DeepSeek 提出质疑。这条放在这里是为了不自相矛盾——本页主推 DSH 桌面版，但国产不等于免检。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} },
+      { d:"2023", t:"OpenAI：开源库漏洞导致用户聊天记录泄露",
+        x:"因其开源库漏洞，导致部分用户聊天记录泄露。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} },
+      { d:"多次", t:"共同规律：刹车几乎都来自外部",
+        x:"这几起事件的共同点是：都发生在用户看不见的地方，厂商最初的解释都绕不开「产品功能或技术需要」，而最后的刹车几乎没有一次来自厂商自律——几乎全部来自开发者逆向分析、监管介入或司法审查。",
+        s:{t:"澎湃 / 国际金融报",u:"https://m.thepaper.cn/newsDetail_forward_34130357"} }
+    ]
+  },
+  {
+    vendor: "中转 API / 代充（灰色链路）",
+    note: "本页专门劝退的那条路",
+    items: [
+      { d:"长期", t:"掺水、投毒与随时关停", bad:true,
+        x:"中转方能看到你发给模型的全部内容——源码、密钥、业务数据都在内；已有公开测评指出存在掺水与投毒的情况。服务随时可能关停，搭在上面的工作流会一夜失效。代充与共享账号违反服务条款，封号后没有申诉渠道，也没有退款。",
+        s:{t:"AI 中转站研究与测评报告 2026",u:"https://github.com/AITrustTools/llm-relay-assessment"} }
+    ]
+  }
+];
+
+/* =========================================================================
+   5. 逻辑
    ========================================================================= */
 const $ = id => document.getElementById(id);
 const screens = {
   start: $("screen-start"),
   quiz: $("screen-quiz"),
   result: $("screen-result"),
-  catalog: $("screen-catalog")
+  catalog: $("screen-catalog"),
+  events: $("screen-events")
 };
 let visited = [];
 let cursor = null;
@@ -1277,6 +1402,25 @@ function renderCatalog(){
   show("catalog");
 }
 
+function renderEvents(){
+  const box = $("evBody");
+  let html = "";
+  EVENTS.forEach(g => {
+    html += '<div class="evgrp"><h4>' + g.vendor + (g.note ? '<span>' + g.note + '</span>' : '') + '</h4>';
+    g.items.forEach(it => {
+      html += '<div class="ev' + (it.bad ? ' bad' : '') + '">' +
+                '<div class="d">' + it.d + '</div>' +
+                '<div class="t">' + it.t + '</div>' +
+                '<div class="x">' + it.x + '</div>' +
+                (it.s ? '<a class="s" href="' + it.s.u + '" target="_blank" rel="noopener">来源：' + it.s.t + ' ↗</a>' : '') +
+              '</div>';
+    });
+    html += '</div>';
+  });
+  box.innerHTML = html;
+  show("events");
+}
+
 function restart(){
   visited = [];
   cursor = null;
@@ -1290,6 +1434,8 @@ $("btnBack").onclick = back;
 $("btnRestart").onclick = restart;
 $("btnCatalog").onclick = renderCatalog;
 $("btnCatalog2").onclick = renderCatalog;
+$("btnEvents").onclick = renderEvents;
+$("btnBackHome2").onclick = () => show("start");
 $("btnBackHome").onclick = () => show("start");
 
 document.addEventListener("keydown", e => {
