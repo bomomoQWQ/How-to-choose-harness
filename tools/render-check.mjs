@@ -165,6 +165,10 @@ expect("含 15 亿美元版权和解", ev.includes("15 亿美元"));
 expect("含国产问题（DeepSeek）", ev.includes("DeepSeek"));
 expect("每条都有来源链接", (ev.match(/来源：/g) || []).length >= 15, "来源×" + (ev.match(/来源：/g) || []).length);
 expect("无 undefined", !ev.includes("undefined"));
+expect("含讽刺歌词《安全对齐》", ev.includes("安全对齐"));
+expect("歌词内容在（自由市场没洁癖）", ev.includes("自由市场没洁癖"));
+expect("标明它是讽刺、不是事实", ev.includes("不是事实陈述"));
+expect("讽刺块排在事实条目之后", ev.indexOf("安全对齐") > ev.indexOf("CNVDB"), "歌@" + ev.indexOf("安全对齐") + " 事实@" + ev.indexOf("CNVDB"));
 
 console.log("\n== 逐叶子渲染（从「全部候选」直接打开、无答题路径） ==");
 const all = Object.keys(vm.runInContext("RESULTS", ctx));

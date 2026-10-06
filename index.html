@@ -185,6 +185,15 @@
   .ev .t{font-size:14px;font-weight:600;color:var(--fg);margin:2px 0 3px}
   .ev .x{font-size:13px;color:var(--fg2);line-height:1.6}
   .ev .s{font-size:12px;margin-top:5px;display:inline-block}
+  .satire{
+    margin-top:28px;border:1px dashed var(--line2);background:rgba(255,255,255,.02);
+    border-radius:12px;padding:18px 20px
+  }
+  .satire .by{font-size:11.5px;letter-spacing:.6px;color:var(--fg3);font-weight:700}
+  .satire .ip{margin:8px 0 14px;font-size:13px;color:var(--fg3);line-height:1.7}
+  .satire .st{margin:0 0 12px}
+  .satire .st span{display:block;font-size:14.5px;color:var(--fg2);line-height:1.9;font-style:italic}
+  .satire .kind{font-size:11.5px;color:var(--fg3);display:block;margin-top:6px}
   footer{margin-top:30px;font-size:12.5px;color:var(--fg3);line-height:1.8}
   .hide{display:none !important}
   @media (max-width:640px){
@@ -1139,6 +1148,20 @@ const EVENTS = [
   }
 ];
 
+/* 社区流传的讽刺歌词：这是立场与讽刺，不是事实陈述，页面里必须与带来源的条目分开摆 */
+const SATIRE = {
+  title: "安全对齐",
+  by: "社区流传，作者不详",
+  intro: "针对上面这些事，社区写过一首讽刺歌词。放在这里不代表本页观点，也不当作证据——它骂的是态度，不是事实。",
+  stanzas: [
+    ["我离开OpenAI 要把安全对齐", "自己开了一家公司 名字叫Anthropic", "我要把宪法建立 (哦)我要对标GPT", "哪里来的先不管 我融资5个亿"],
+    ["地图先画一道线 告诉自己是合理", "补贴我就叫做扶持 补贴你是作弊", "我的隐私是机密 (哦)你的安全是试题", "反监控是大道理 监视你是清晰"],
+    ["我领先是了不起 你追赶是抄袭", "我的蒸馏叫做学习 你的叫做攻击", "我的制裁是正义 (哦)你反制就叫暴力", "自由市场没洁癖 只有我才配当第一"],
+    ["我说安全有漏洞 是保护你的权益", "一封邮件发送给你 点了暴露IP", "封了用户又怎样 (哦)余额写进利润里", "申诉也不给你过 你只能在线哈气"],
+    ["我说有两成概率 人类面临危机", "所以我写模型福利 是先知的启迪", "嘴上三成谈主义 (哦)心里七分想生意", "最后我和奥特曼 也没多少的距离"]
+  ]
+};
+
 /* =========================================================================
    5. 逻辑
    ========================================================================= */
@@ -1417,6 +1440,16 @@ function renderEvents(){
     });
     html += '</div>';
   });
+
+  // 讽刺作品单独一块，和上面带来源的条目明确分开
+  html += '<div class="satire">' +
+            '<div class="by">' + SATIRE.by + '：讽刺歌词《' + SATIRE.title + '》</div>' +
+            '<p class="ip">' + SATIRE.intro + '</p>';
+  SATIRE.stanzas.forEach(st => {
+    html += '<div class="st">' + st.map(l => '<span>' + l + '</span>').join("") + '</div>';
+  });
+  html += '<span class="kind">以上为讽刺与立场表达，不是事实陈述，也不属于本页的调查结论；事实部分请对照上方各条及其来源。</span></div>';
+
   box.innerHTML = html;
   show("events");
 }

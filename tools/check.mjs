@@ -58,7 +58,7 @@ else ok("script 内每行双引号都配平");
 let data = null;
 try {
   const ctx = vm.createContext(sandbox);
-  vm.runInContext(js + "\n;globalThis.__OUT = { RESULTS, NODES, CATALOG, META, EVENTS };", ctx);
+  vm.runInContext(js + "\n;globalThis.__OUT = { RESULTS, NODES, CATALOG, META, EVENTS, SATIRE };", ctx);
   data = ctx.__OUT;
   ok("脚本可执行，数据取到");
 } catch (e) {
@@ -66,7 +66,7 @@ try {
 }
 
 if (data) {
-  const { RESULTS, NODES, CATALOG, META, EVENTS } = data;
+  const { RESULTS, NODES, CATALOG, META, EVENTS, SATIRE } = data;
 
   // 5a. 跳转目标存在
   let broken = [];
@@ -243,6 +243,19 @@ if (data) {
   const evCount = (EVENTS || []).reduce((n, g) => n + g.items.length, 0);
   evBad.length ? bad("事件清单问题: " + evBad.join("; "))
                : ok("事件清单 " + EVENTS.length + " 组 / " + evCount + " 条，全部带来源链接");
+
+  // 5o. 讽刺作品（SATIRE）：必须与事实条目分离，且不能冒充来源
+  let satBad = [];
+  if (!SATIRE || !SATIRE.title) satBad.push("SATIRE 缺 title");
+  if (!SATIRE || !SATIRE.by) satBad.push("缺署名／出处说明");
+  if (!SATIRE || !SATIRE.intro) satBad.push("缺免责说明（它是讽刺不是事实）");
+  if (!SATIRE || !Array.isArray(SATIRE.stanzas) || !SATIRE.stanzas.length) satBad.push("缺歌词段落");
+  (SATIRE && SATIRE.stanzas || []).forEach((st, i) => {
+    if (!Array.isArray(st) || !st.length) satBad.push("第 " + (i+1) + " 段为空");
+    st.forEach(l => { if (/^https?:/.test(l)) satBad.push("歌词里混进了链接"); });
+  });
+  satBad.length ? bad("讽刺作品块问题: " + satBad.join("; "))
+                : ok("讽刺作品块完整（" + SATIRE.stanzas.length + " 段），且标注了「不是事实陈述」");
 
   console.log("叶子: " + [...leaves].sort().join(", "));
 }
