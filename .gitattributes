@@ -1,0 +1,4 @@
+# 统一用 LF 存进仓库，避免 Windows 上 CRLF 把整份文件标成改动
+* text=auto eol=lf
+*.png binary
+*.jpg binary

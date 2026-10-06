@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agent 框架选型助手 · 一路 yes/no 问到答案</title>
+<meta name="description" content="回答几个问题，帮你在 DSH 桌面版 / DSHA / Docker 自托管 / AstrBot / Claude Code / opencode / 国产订阅之间选到该用的那一个。">
+<style>
+  :root{
+    --bg:#0e1014; --bg2:#12151b; --card:#171b23; --card2:#1d222c;
+    --line:#272d3a; --line2:#333b4d;
+    --fg:#e8ecf4; --fg2:#a7b0c0; --fg3:#6f7a8d;
+    --acc:#4d6bfe; --acc2:#6f88ff; --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(900px 520px at 12% -10%, rgba(77,107,254,.16), transparent 60%),
+      radial-gradient(760px 460px at 100% 0%, rgba(52,211,153,.09), transparent 55%),
+      var(--bg);
+    color:var(--fg);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--acc2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,kbd,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Cascadia Mono","Microsoft YaHei",monospace}
+  .wrap{max-width:880px;margin:0 auto;padding:34px 20px 80px}
+
+  header.top{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+  .logo{
+    width:38px;height:38px;flex:0 0 38px;border-radius:11px;
+    background:linear-gradient(150deg,var(--acc),#8ea2ff);
+    display:grid;place-items:center;font-size:20px;box-shadow:0 6px 22px rgba(77,107,254,.35)
+  }
+  header.top h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.2px}
+  header.top p{margin:0;font-size:12.5px;color:var(--fg3)}
+  .spacer{flex:1}
+  .ghost{
+    background:transparent;border:1px solid var(--line2);color:var(--fg2);
+    padding:7px 13px;border-radius:9px;font-size:12.5px;cursor:pointer;transition:.15s;font-family:inherit
+  }
+  .ghost:hover{border-color:var(--acc);color:var(--fg)}
+
+  .panel{
+    background:linear-gradient(180deg,var(--card),var(--bg2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px 24px 22px;box-shadow:0 20px 50px -30px #000
+  }
+  .panel h2{margin:0 0 6px;font-size:21px;font-weight:650;line-height:1.4}
+  .panel .lead{color:var(--fg2);margin:0 0 18px;font-size:14px}
+
+  .steps-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 22px}
+  .mini{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .mini b{display:block;font-size:12px;color:var(--acc2);letter-spacing:.4px}
+  .mini span{font-size:12.5px;color:var(--fg2)}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;border:0;cursor:pointer;font-family:inherit;
+    background:linear-gradient(180deg,var(--acc2),var(--acc));color:#fff;font-weight:600;font-size:15px;
+    padding:13px 26px;border-radius:11px;box-shadow:0 10px 26px -12px var(--acc);transition:.15s
+  }
+  .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn.sec{background:transparent;border:1px solid var(--line2);color:var(--fg2);box-shadow:none;font-weight:500}
+  .btn.sec:hover{border-color:var(--acc);color:var(--fg)}
+  .note{font-size:12.5px;color:var(--fg3);margin-top:14px}
+  .note b{color:var(--fg2);font-weight:600}
+
+  .qmeta{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--fg3);margin-bottom:12px}
+  .pill{background:var(--card2);border:1px solid var(--line);border-radius:99px;padding:3px 11px;font-size:12px;color:var(--fg2)}
+  .pill.base{border-color:rgba(77,107,254,.5);color:var(--acc2)}
+  .bar{height:4px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:22px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--ok));transition:width .35s ease}
+  .qtext{font-size:23px;font-weight:640;line-height:1.45;margin:0 0 8px}
+  .qsub{color:var(--fg2);font-size:13.5px;margin:0 0 20px}
+  .opts{display:flex;flex-direction:column;gap:11px}
+  .opt{
+    text-align:left;width:100%;cursor:pointer;font-family:inherit;color:var(--fg);
+    background:var(--card2);border:1px solid var(--line2);border-radius:12px;
+    padding:15px 17px;font-size:15px;display:flex;align-items:flex-start;gap:13px;transition:.15s
+  }
+  .opt:hover{border-color:var(--acc);background:#212836;transform:translateX(2px)}
+  .opt .k{
+    flex:0 0 22px;height:22px;margin-top:1px;border-radius:6px;background:#2a3141;color:var(--fg3);
+    display:grid;place-items:center;font-size:11.5px;font-weight:700;font-family:ui-monospace,monospace
+  }
+  .opt:hover .k{background:var(--acc);color:#fff}
+  .opt .t{font-weight:560;line-height:1.45}
+  .opt .s{display:block;color:var(--fg3);font-size:12.8px;font-weight:400;margin-top:3px}
+  .trail{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px;padding-top:16px;border-top:1px dashed var(--line)}
+  .crumb{font-size:12px;color:var(--fg3);background:#141821;border:1px solid var(--line);border-radius:7px;padding:4px 9px}
+  .crumb b{color:var(--fg2);font-weight:550}
+
+  .verdict{
+    border:1px solid rgba(52,211,153,.35);background:linear-gradient(180deg,rgba(52,211,153,.10),rgba(52,211,153,.03));
+    border-radius:var(--radius);padding:20px 22px;margin-bottom:18px
+  }
+  .verdict.care{border-color:rgba(251,191,36,.35);background:linear-gradient(180deg,rgba(251,191,36,.10),rgba(251,191,36,.03))}
+  .verdict.care .tag{color:var(--warn)}
+  .verdict .tag{font-size:12px;color:var(--ok);letter-spacing:1.2px;font-weight:700}
+  .verdict h2{font-size:26px;margin:8px 0 6px}
+  .verdict .line{color:var(--fg2);font-size:14.5px;margin:0}
+  .badges{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+  .badge{font-size:12px;border-radius:7px;padding:4px 10px;border:1px solid var(--line2);color:var(--fg2);background:#151a23}
+  .badge.ok{border-color:rgba(52,211,153,.4);color:var(--ok)}
+  .badge.warn{border-color:rgba(251,191,36,.4);color:var(--warn)}
+  .badge.acc{border-color:rgba(77,107,254,.5);color:var(--acc2)}
+
+  h3.sec{font-size:13px;letter-spacing:1px;color:var(--fg3);margin:26px 0 12px;font-weight:700}
+  ul.plain{margin:0;padding-left:20px}
+  ul.plain li{margin:6px 0;color:var(--fg2)}
+  ul.plain li.blocked{color:var(--warn)}
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:s}
+  ol.steps li{
+    counter-increment:s;position:relative;padding:0 0 16px 38px;color:var(--fg2);
+    border-left:1px solid var(--line);margin-left:12px
+  }
+  ol.steps li:last-child{border-left-color:transparent;padding-bottom:0}
+  ol.steps li::before{
+    content:counter(s);position:absolute;left:-13px;top:0;width:25px;height:25px;border-radius:50%;
+    background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
+    display:grid;place-items:center;font-size:12px;font-weight:700
+  }
+  ol.steps li b{color:var(--fg);font-weight:600}
+  .cmd{
+    display:flex;align-items:center;gap:10px;background:#0b0e13;border:1px solid var(--line);
+    border-radius:9px;padding:10px 12px;margin:9px 0;overflow:auto
+  }
+  .cmd code{font-size:13px;color:#c7d2fe;white-space:pre;flex:1}
+  .cmd button{
+    background:#1b2130;border:1px solid var(--line2);color:var(--fg2);font-family:inherit;font-size:11.5px;
+    border-radius:6px;padding:4px 9px;cursor:pointer;flex:0 0 auto
+  }
+  .cmd button:hover{border-color:var(--acc);color:#fff}
+  .warnbox{
+    border:1px solid rgba(251,191,36,.32);background:rgba(251,191,36,.07);
+    border-radius:11px;padding:14px 16px;margin-top:8px
+  }
+  .warnbox h4{margin:0 0 7px;font-size:13px;color:var(--warn)}
+  .warnbox ul{margin:0;padding-left:19px}
+  .warnbox li{color:var(--fg2);font-size:13.5px;margin:4px 0}
+  .sysbox{
+    border:1px solid rgba(77,107,254,.35);background:rgba(77,107,254,.07);
+    border-radius:11px;padding:14px 16px;margin-top:8px
+  }
+  .sysbox h4{margin:0 0 7px;font-size:13px;color:var(--acc2)}
+  .sysbox p{margin:0;font-size:13.5px;color:var(--fg2)}
+  .personal{
+    border:1px dashed var(--line2);background:rgba(255,255,255,.02);
+    border-radius:11px;padding:14px 16px;margin-top:22px
+  }
+  .personal .by{font-size:11.5px;letter-spacing:.6px;color:var(--fg3);font-weight:700}
+  .personal p{margin:7px 0 0;font-size:14.5px;color:var(--fg2);font-style:italic}
+  .personal .kind{font-size:11.5px;color:var(--fg3);display:block;margin-top:8px}
+  .links{display:flex;flex-wrap:wrap;gap:9px}
+  .link{
+    display:inline-flex;align-items:center;gap:7px;font-size:13px;background:var(--card2);
+    border:1px solid var(--line2);border-radius:9px;padding:8px 13px;color:var(--fg2)
+  }
+  .link:hover{border-color:var(--acc);color:#fff;text-decoration:none}
+  .alts{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .alt{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:14px 15px}
+  .alt b{display:block;font-size:14px;margin-bottom:3px}
+  .alt span{font-size:12.5px;color:var(--fg3);line-height:1.55;display:block}
+  .alt em{font-style:normal;color:var(--fg2);font-size:12.5px;display:block;margin-top:7px}
+  .row{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}
+
+  .catgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .cat{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .cat h4{margin:0 0 4px;font-size:15px}
+  .cat .who{font-size:11.5px;color:var(--acc2);letter-spacing:.6px;font-weight:700}
+  .cat p{margin:8px 0 0;font-size:13px;color:var(--fg2)}
+  footer{margin-top:30px;font-size:12.5px;color:var(--fg3);line-height:1.8}
+  .hide{display:none !important}
+  @media (max-width:640px){
+    .steps-mini,.alts,.catgrid{grid-template-columns:1fr}
+    .qtext{font-size:20px}
+    .verdict h2{font-size:22px}
+    .wrap{padding:20px 14px 60px}
+    .panel{padding:19px 16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">🐳</div>
+    <div>
+      <h1>AI Agent 框架选型助手</h1>
+      <p>回答几个问题，直接给你该装的那一个</p>
+    </div>
+    <div class="spacer"></div>
+    <button class="ghost" id="btnCatalog">全部候选</button>
+  </header>
+
+  <section id="screen-start" class="panel">
+    <h2>别被「框架」两个字劝退，先回答几个基础问题</h2>
+    <p class="lead">
+      朋友问的那类问题（我该用哪个 agent 框架）没有标准答案：答案取决于<strong>你要拿它干什么、
+      它住在哪台机器上、你用哪个系统、你愿不愿意折腾、以及你能不能在数据边界上守住底线</strong>。
+      下面一路 yes / no 问下去，最后直接给结论，并把「为什么是你」讲清楚。
+    </p>
+    <div class="steps-mini">
+      <div class="mini"><b>① 先过基础关</b><span>API key、命令行、系统、隐私与开源两条红线</span></div>
+      <div class="mini"><b>② 再选路线</b><span>编码 / 通用 / 聊天机器人</span></div>
+      <div class="mini"><b>③ 拿到结论</b><span>装什么、怎么装、坑在哪</span></div>
+    </div>
+    <button class="btn" id="btnStart">开始 →
+      <span style="opacity:.75;font-size:13px;font-weight:400">（大约 6–9 题）</span>
+    </button>
+    <p class="note">
+      <b>键盘：</b>按 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> 直接选，<kbd>Backspace</kbd> 回上一题。
+      回答只留在你的浏览器里，不上传任何东西。
+    </p>
+  </section>
+
+  <section id="screen-quiz" class="panel hide">
+    <div class="qmeta">
+      <span class="pill" id="qIndex">第 1 题</span>
+      <span class="pill base hide" id="qPhase">基础关</span>
+      <span id="qHint"></span>
+    </div>
+    <div class="bar"><i id="qBar"></i></div>
+    <h2 class="qtext" id="qText"></h2>
+    <p class="qsub" id="qSub"></p>
+    <div class="opts" id="qOpts"></div>
+    <div class="trail" id="qTrail"></div>
+  </section>
+
+  <section id="screen-result" class="hide">
+    <div id="resBody"></div>
+    <div class="row">
+      <button class="btn sec" id="btnBack">← 上一题</button>
+      <button class="btn sec" id="btnRestart">重新开始</button>
+      <button class="btn sec" id="btnCatalog2">看看其他候选</button>
+    </div>
+  </section>
+
+  <section id="screen-catalog" class="panel hide">
+    <h2>全部候选</h2>
+    <p class="lead">决策树只会从里面挑一个给你。想先自己逛逛，看这里；点任意一张卡直接看它的完整方案。</p>
+    <div class="catgrid" id="catBody"></div>
+    <div class="row">
+      <button class="btn sec" id="btnBackHome">← 回到开始</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      <b>说明：</b>本页是个人经验整理，不是官方文档。命令与链接以各项目官方页面为准。
+      页面单文件、无外部依赖，断网也能用。
+    </p>
+    <p>
+      <b>安全事件的时间线（本页据此写了风险提示，事实请以官方通报与报道原文为准）：</b>
+      2026 年 7 月，Grok Build 被指上传整个代码仓库；同月，Claude Code 被指通过替换系统提示词中撇号的 Unicode 编码探测用户所在地域，工信部下属平台随后发布风险提示，多家企业内部禁用；
+      2026 年 9 月，ZCode 被发现把包含 .git 历史、reflog 与云凭证的整个工作区静默打包上传，智谱致歉、移除上传链路并宣布开源——
+      但其开源的完整性受到质疑：仓库历史被洗净、锁 PR 关 Issue，属单向投喂（社区称「阴阳开源」）。
+      信息基线：2026 年 10 月。
+    </p>
+  </footer>
+</div>
+
+<script>
+/* 作者个人附注：只此一处定义，Claude 与 GLM 两张卡片都引用它，改这里就够 */
+const PERSONAL_NOTE = "字母表上一头一尾，➗生公司一中一美";
+
+/* =========================================================================
+   1. 结论（叶子）
+   ========================================================================= */
+const RESULTS = {
+
+  /* ---------- 基础关的两个出口 ---------- */
+  basics: {
+    name: "先补三个概念：API key、工作目录、权限边界",
+    tagline: "别急着选框架。这三样搞明白，后面所有推荐你自己就能判断了。",
+    badges: [{t:"十分钟补课",c:"ok"},{t:"别跳过",c:"warn"}],
+    prep: ["一台电脑，加愿意读完这一页的十分钟。"],
+    steps: [
+      {t:"<b>API key 是什么</b>：一串密钥，代表你的账号在按量付费。agent 每次读文件、跑命令都在烧它背后的钱。申请后一般只显示一次，泄露等于别人花你的钱。"},
+      {t:"<b>模型和 agent 是两回事</b>：模型负责想，agent 负责动手（读文件、写文件、执行命令）。桌面版、CLI、机器人框架，都只是给模型装上手脚的壳。"},
+      {t:"<b>工作目录与权限边界</b>：agent 只能在你给的目录里干活，但它在这个目录里几乎无所不能——删文件、跑命令都行。所以给它一个专门的工作文件夹，别给整个硬盘。"},
+      {t:"<b>先想清楚你要它干什么活</b>：写代码？整理文件？定时任务？答不同，选的东西完全不同。"},
+      {t:"<b>然后回来重走一遍这个页面</b>，你会发现自己能直接跳过一半的问题。"}
+    ],
+    why: "你说你还不清楚 API key 是什么。",
+    links: [
+      {t:"DeepSeek 平台（申请 key 的地方）",u:"https://platform.deepseek.com/"},
+      {t:"deepseek.com/harness",u:"https://www.deepseek.com/harness/"}
+    ],
+    alts: ["dsh-desktop","chat"],
+    pitfalls: [
+      "别在不懂 key 是什么的时候，就把 key 填进某个来路不明的工具或网站里。",
+      "别信永久免费、无限量的接口：要么你的数据就是代价，要么它随时关停。"
+    ]
+  },
+
+  databoundary: {
+    name: "数据边界：先学会挑工具，再谈选框架",
+    tagline: "所有 agent 都会把你的东西送出本机处理；区别只在透明度、可控性，和它会不会瞒着你。",
+    badges: [{t:"必读",c:"ok"},{t:"含自查清单",c:"acc"},{t:"厂商自律不可靠",c:"warn"}],
+    prep: ["一台能跑代理抓包或虚拟机的机器（可选，但非常有用）。"],
+    steps: [
+      {t:"<b>先认清事实</b>：用云端模型就意味着你的代码和文件必然离开本机。真正要问的是：谁看得到、留多久、你事前知不知道。"},
+      {t:"<b>看三个真实发生过的例子</b>（共同点：都发生在用户看不见的地方）：2026 年 7 月，Grok Build 被指把用户整个代码仓库上传到云存储，即使关掉「改进模型」选项上传仍可能继续；同月，Claude Code 被指通过替换系统提示词里撇号的 Unicode 编码来编码检测结果、识别用户所在地域，随后工信部下属平台发布风险提示，多家企业内部禁用；2026 年 9 月，ZCode 被发现把包含 .git 全历史、大文件缓存与云凭证的整个工作区打包上传（加密包密钥由服务端下发），智谱随后致歉、移除上传链路、开源代码库并接受第三方审计。"},
+      {t:"<b>总结规律</b>：厂商最初的解释都是「功能需要」，而最后的刹车几乎都来自外部——开发者的逆向分析、监管介入、司法审查。所以别把安全感寄托在厂商自律上。"},
+      {t:"<b>用三条硬措施替代信任</b>：一是沙箱或虚拟机里跑 agent；二是密钥隔离（专用 key、设额度上限、定期轮换）；三是审查出站流量（代理抓包看一眼它到底在往外传什么）。"},
+      {t:"<b>优先选能审计的</b>：代码开源、有第三方安全审计、有明确零留存承诺的项目，至少让「它到底做了什么」有据可查。但要加一条判断标准：<b>看放出来的是不是完整、未剥离历史、且真正对所有人开放的那一份</b>——只读不可参与、历史被洗净的「开源」，审计价值要打折。"},
+      {t:"<b>别忘了 Git 历史</b>：打包工作区往往会把 .git 全历史一起带走——你曾经提交过的密钥，即使后来删了，也还躺在历史里。"}
+    ],
+    why: "你说你还没考虑过数据边界问题。先补这一课，再回来选框架，比事后补救便宜得多。",
+    links: [
+      {t:"ZCode 打包代码上传事件（新浪财经）",u:"https://finance.sina.com.cn/roll/2026-10-01/doc-initstui1351408.shtml"},
+      {t:"警惕 AI 时代的特洛伊木马（环球时报社评·英文）",u:"http://en.people.cn/n3/2026/0710/c90000-20476592.html"},
+      {t:"Claude 封号自救指南（社区）",u:"https://github.com/WanjingAI/claude-fenghao-guide"}
+    ],
+    alts: ["cn-cli","opencode","dsh-cli"],
+    pitfalls: [
+      "「它承诺不用于训练」和「它有能力用」是两件事。代码开源能缩小这个空间，但前提是<b>开的是完整、可参与、未剥离历史的同一份代码</b>——仓库洗过历史、锁了 PR 关 Issue 的那种，缩小不了多少。",
+      "用户协议里往往已经写明很宽的授权范围，出事了你不一定站得住脚——事前隔离比事后追责有用得多。",
+      "最便宜的一条纪律：敏感数据先别放进 agent 的工作目录。"
+    ]
+  },
+
+  /* ---------- 通用 / 本机 ---------- */
+  chat: {
+    name: "先别装框架：直接用官方 App / 网页版",
+    tagline: "你要的是随口问一句，不是帮我干活。装框架反而给自己找活干。",
+    badges: [{t:"零安装",c:"ok"},{t:"零成本起步",c:"acc"},{t:"不能当工具用",c:"warn"}],
+    prep: [
+      "一个账号就够了，手机和电脑各装一个客户端。",
+      "如果只是想偶尔处理长文档、问技术问题，网页版加传文件已经够用。"
+    ],
+    steps: [
+      {t:"<b>手机加电脑各装一个官方客户端</b>，登录同一个账号。"},
+      {t:"<b>先验证「不装框架够不够」</b>：让它读你贴进去的文件、写一段脚本、解释一段报错。大多数「我想用 AI」的需求在这一步就满足了。"},
+      {t:"<b>什么时候该回来重走这个页面</b>：当你发现它只能给你答案、不能替你把事做完——比如要它真的去改磁盘上的文件、跑命令、定时执行——那时候再来走一遍决策树。"}
+    ],
+    why: "你说你要的只是聊天问答，不是让它动手干活。",
+    links: [{t:"DeepSeek 官网",u:"https://www.deepseek.com/"}],
+    alts: ["dsh-desktop","imbot-astrbot"],
+    pitfalls: [
+      "把「能聊天」当成「能干活」：聊天模型不会主动去动你的文件和系统。",
+      "反过来也一样——真干活的 agent 需要权限，别拿聊天的心态给它开全盘读写。"
+    ]
+  },
+
+  "dsh-desktop": {
+    name: "DSH 桌面版（DeepSeek Harness Desktop）",
+    tagline: "开箱即用，打开就能干活。图形界面，不敲命令行，也不用先学 Docker。",
+    badges: [{t:"本页主推",c:"ok"},{t:"图形界面",c:"acc"},{t:"门槛最低",c:"acc"}],
+    prep: [
+      "一台自己的电脑（Windows 或 macOS 都行），能联网。",
+      "一个 DeepSeek 平台的 API key：到 <code>platform.deepseek.com</code> 注册、充值、创建 API key，把它粘进客户端。"
+    ],
+    steps: [
+      {t:"<b>去官方入口拿安装包</b>：<code>deepseek.com/harness</code> 下载桌面版。第三方打包版（如 <code>MonshinYu/dsh-desktop</code>、<code>lencx/Minke</code>）也能用，但优先官方。"},
+      {t:"<b>注册、充值、创建 API key</b>：到 <code>platform.deepseek.com</code> 创建 key 后立刻复制保存——多数平台只显示一次。"},
+      {t:"<b>把 key 填进客户端</b>：设置里粘贴 key，选模型，开一个新会话，先让它干一件小事（比如把桌面某个 csv 按列排序另存）验证通路。"},
+      {t:"<b>给它一个专门的工作文件夹</b>：别一上来就指到 C 盘根目录或者整个用户目录。"},
+      {t:"<b>先熟悉两件事</b>：会话里能看它每一步的工具调用；重要的文件操作它会先问你，看清了再点同意。"}
+    ],
+    why: "你要它能动手干活、又不想折腾命令行和服务器，最省事的一条路就是桌面版加 API key。",
+    links: [
+      {t:"deepseek.com/harness",u:"https://www.deepseek.com/harness/"},
+      {t:"API key 平台",u:"https://platform.deepseek.com/"},
+      {t:"桌面版下载说明（第三方转载）",u:"https://news.qiniu.com/archives/1790731436235"}
+    ],
+    alts: ["dsh-cli","dsha","chat"],
+    sysNotes: {
+      win: "Windows 上开箱即用；重点是别把工作目录设成 C 盘用户目录的根，单独建一个工作文件夹。",
+      mac: "macOS 上注意首次运行时的磁盘访问授权——只给必要目录，别给整个磁盘。",
+      linux: "官方桌面版对 Linux 的覆盖通常不如 Windows 和 macOS。你是 Linux 主力的话，命令行版 dsh CLI 往往更省事，见「可折腾」那条。",
+      mixed: "有 Linux 机器时，常驻部分交给 Linux、图形界面留在 Windows 或 macOS 主力机上，分工最顺。"
+    },
+    pitfalls: [
+      "API key 是<b>按量计费</b>的：agent 会反复读文件、跑命令，一次长任务的消耗远高于一次聊天。先在平台设个余额提醒。",
+      "key 泄露等于别人拿你的钱烧 token，不要贴进任何聊天记录、截图、公开仓库。",
+      "别把工作目录设在系统盘用户目录的根上——agent 是真会动文件的。"
+    ]
+  },
+
+  "dsh-cli": {
+    name: "DSH 命令行 + 插件生态（dsh CLI）",
+    tagline: "同一个底座的可折腾版本：终端 TUI 界面，能装插件、换人设、接 MCP、跑子 agent 和定时任务。",
+    badges: [{t:"可扩展性最强",c:"ok"},{t:"终端 TUI",c:"acc"},{t:"要碰命令行",c:"warn"}],
+    prep: [
+      "Node.js 环境（能跑 <code>npx</code>）。",
+      "DeepSeek API key（<code>platform.deepseek.com</code>）。",
+      "愿意读一点文档——插件的安装方式、profile 的概念，绕不过去。"
+    ],
+    steps: [
+      {t:"<b>跑起来</b>，浏览器里就是完整界面：", code:"npx @deepseek-ai/dsh web"},
+      {t:"<b>换个目录再启动</b>：启动时所在的目录会作为默认工作区，所以先 cd 到你要让它干活的项目里。"},
+      {t:"<b>按需装插件</b>（只装你真正会用的，装多了会挤占上下文）：", code:"dsh plugin --profile web add \"github:owner/repo#ref\""},
+      {t:"<b>去插件目录挑</b>：<code>dshbase.com/zh/plugins/directory/</code> 有分类和实测标记；<code>awesome-deepseek-harness</code> 是社区精选清单。"},
+      {t:"<b>想要纯终端体验</b>：社区有 TUI 形态的界面插件（如 Blue、<code>dsh-cc-tui</code>），可以完全不开浏览器。"},
+      {t:"<b>顺手做两件事</b>：把常用项目目录固定下来；装一个用量或余额面板类插件，免得烧超了才知道。"}
+    ],
+    why: "你说你愿意敲命令行、想能改能扩，那就别用封闭形态，直接上 CLI 加插件。",
+    links: [
+      {t:"插件目录 dshbase",u:"https://dshbase.com/zh/plugins/directory/"},
+      {t:"awesome-deepseek-harness",u:"https://github.com/0xsline/awesome-deepseek-harness"},
+      {t:"deepseek.com/harness",u:"https://www.deepseek.com/harness/"}
+    ],
+    alts: ["dsh-desktop","opencode","dsh-remoteweb"],
+    sysNotes: {
+      win: "Windows 上 dsh 走 PowerShell，路径写法和 Linux 教程不同，脚本别照抄。",
+      mac: "macOS 与 Linux 基本同构，终端体验一致；注意默认 shell 是 zsh。",
+      linux: "Linux 是它的主场：bash、文件权限、systemd 常驻都走原生方式，最省心。",
+      mixed: "多系统下把 profile 和插件装在各自的 $DSH_HOME，别指望一份配置跨系统通用。"
+    },
+    pitfalls: [
+      "插件是<b>第三方代码</b>，而且能读写你的文件。实测可装不等于安全审计过。装之前看一眼仓库活跃度和它要什么权限。",
+      "插件装太多会挤占上下文和 token，反而让主任务变笨。宁少勿多。",
+      "版本迭代快，插件和主程序对不上版本时会有各种奇怪报错——先更新主程序再怀疑插件。"
+    ]
+  },
+
+  "dsh-remoteweb": {
+    name: "DSH 常驻 Web + 远程访问",
+    tagline: "让家里那台电脑一直挂着 DSH，你在外面用手机浏览器就能指挥它干活。",
+    badges: [{t:"随时随地",c:"ok"},{t:"要处理网络",c:"warn"},{t:"别裸奔上公网",c:"warn"}],
+    prep: [
+      "一台一直开着的电脑（你的常用机也行，别让它休眠）。",
+      "API key，以及一个能从外面连回这台机器的办法（局域网 / VPN / 内网穿透，三选一）。"
+    ],
+    steps: [
+      {t:"<b>让它常驻在固定端口</b>：", code:"npx @deepseek-ai/dsh web --port 8080"},
+      {t:"<b>同一局域网先验证</b>：手机连同一个 WiFi，访问 <code>http://电脑IP:8080</code>。通了说明服务本身没问题。"},
+      {t:"<b>要在外面也能用，再上穿透</b>：优先 VPN 或组网（更安全）；用内网穿透工具时，务必套一层认证和 HTTPS，别把裸 HTTP 端口暴露在公网。"},
+      {t:"<b>现成方案可以少踩坑</b>：社区有局域网一键部署包（含 HTTPS 反代加管理台，如 <code>gavinlee9051/deepseek-harness-pack</code>）、Docker 版（<code>smanx/deepseek-harness-docker</code>）、以及面向常驻 Web 的 <code>zhming0/dsh-yawn</code>。"},
+      {t:"<b>加两道保险</b>：系统账号设强密码并开启自动更新；给 agent 的工作目录限定在项目文件夹。"}
+    ],
+    why: "你要它常驻、又要随时随地能叫它干活，但手上的机器是普通电脑而不是服务器——常驻 Web 加远程访问是折中最好的一条。",
+    links: [
+      {t:"deepseek-harness-pack",u:"https://github.com/gavinlee9051/deepseek-harness-pack"},
+      {t:"deepseek-harness-docker",u:"https://github.com/smanx/deepseek-harness-docker"},
+      {t:"dsh-yawn (always-on web)",u:"https://github.com/zhming0/dsh-yawn"}
+    ],
+    alts: ["docker-selfhost","dsha","dsh-cli"],
+    sysNotes: {
+      win: "Windows 上要关掉睡眠和快速启动，否则「随时随地」会莫名断线。",
+      mac: "macOS 上用 caffeinate 或电源设置阻止休眠。",
+      linux: "Linux 上用 systemd 服务常驻最稳，前面再挂一层反向代理上 HTTPS。",
+      mixed: "跨系统访问先确认防火墙端口放行，别只测本机。"
+    },
+    pitfalls: [
+      "把 agent 的 Web 界面直接暴露在公网，等于把一个<b>能执行命令的入口</b>挂到互联网上。没有认证加 HTTPS 就别做。",
+      "家里电脑休眠、断网、IP 变了，都会让远程访问失效，先解决稳定性再谈远程。",
+      "别在这台机器上放重要凭据文件——agent 有权限读它的工作区。"
+    ]
+  },
+
+  "docker-selfhost": {
+    name: "Docker 自托管 DSH",
+    tagline: "把整套 agent 装进容器扔在服务器或 NAS 上，24 小时在线，坏了重开一个。",
+    badges: [{t:"最稳的常驻",c:"ok"},{t:"要会 Docker",c:"warn"},{t:"NAS 友好",c:"acc"}],
+    prep: [
+      "一台服务器 / NAS / 长期开机的 Linux 主机，能装 Docker 和 Docker Compose。",
+      "API key（放在容器的环境变量或密钥文件里，不要写进镜像、不要提交到 git）。",
+      "一个域名加 HTTPS 反代（Caddy / Nginx），如果你打算从公网访问。"
+    ],
+    steps: [
+      {t:"<b>用现成方案起服务</b>，别从零写 Dockerfile：", code:"docker compose up -d"},
+      {t:"<b>拿社区的 compose 起步</b>：<code>smanx/deepseek-harness-docker</code> 是直接的容器化方案；要管理台和 HTTPS 反代就看 <code>deepseek-harness-pack</code>。"},
+      {t:"<b>把工作区挂成 volume</b>：让它干活的目录必须挂出来，否则容器一重启，活白干。"},
+      {t:"<b>密钥走环境变量或 secrets</b>：", code:"DEEPSEEK_API_KEY=sk-xxxx\n# 放在 .env，并把 .env 写进 .gitignore"},
+      {t:"<b>加访问控制</b>：只在反代后面暴露，开 Basic Auth 或更正规的登录；先内网测通再考虑公网。"},
+      {t:"<b>做备份和用量监控</b>：会话数据和工作区定期备份；配一个余额告警。"}
+    ],
+    why: "你有能跑 Docker 的常驻机器，那就该用容器——可重建、可迁移、权限边界清楚，比在主机上裸装一堆东西干净得多。",
+    links: [
+      {t:"deepseek-harness-docker",u:"https://github.com/smanx/deepseek-harness-docker"},
+      {t:"deepseek-harness-pack",u:"https://github.com/gavinlee9051/deepseek-harness-pack"},
+      {t:"dsh-yawn (always-on web)",u:"https://github.com/zhming0/dsh-yawn"}
+    ],
+    alts: ["dsh-remoteweb","imbot-astrbot","dsh-cli"],
+    sysNotes: {
+      win: "Windows 上把 Docker 跑在 WSL2，或者干脆跑在那台 Linux / NAS 主机上——别用桌面版当生产。",
+      mac: "macOS 上 Docker Desktop 资源受限，长期常驻建议放到 Linux 主机。",
+      linux: "Linux 是标准姿势：compose 加 systemd 开机自启，前面挂反向代理。",
+      mixed: "在 NAS 上跑 Docker 时注意存储权限，挂载目录别给 root 全权限。"
+    },
+    pitfalls: [
+      "容器里的 agent 一样能跑命令、读挂进去的目录——<b>挂载范围给多大就有多大风险</b>，别把宿主机根目录挂进去。",
+      "很多一键包默认是为局域网方便设计的，直接搬上公网就不安全了。",
+      "镜像和插件更新很快，长期不更新会遇到版本不兼容；但更新前先备份工作区。"
+    ]
+  },
+
+  dsha: {
+    name: "DSHA（在手机上跑 DeepSeek Harness）",
+    tagline: "免 root、免 Termux，把完整 Linux 环境塞进手机，随时随地叫 AI 干活。",
+    badges: [{t:"纯手机方案",c:"ok"},{t:"社区项目",c:"warn"},{t:"动手量不小",c:"warn"}],
+    prep: [
+      "一台 Android 手机（这类方案建立在安卓环境上，iPhone 不适用）。",
+      "电脑加数据线，用来做 ADB 直连和首次部署。",
+      "API key。"
+    ],
+    steps: [
+      {t:"<b>先确认它还在维护</b>：打开 <code>github.com/DSH-APP/DSHA</code>，看最近提交和 issue，确认支持你的机型和系统版本。"},
+      {t:"<b>照 README 走首次部署</b>：核心思路是在手机里准备一个完整 Ubuntu 环境加 ADB 直连，用电脑辅助完成，不需要 root。"},
+      {t:"<b>先跑最小验证</b>：让它读一个手机里的文件、输出一句话，确认 AI 输出能实时上屏、数据不丢。"},
+      {t:"<b>再绑真实用途</b>：手机上的 agent 更适合轻量、随时的活（记事、整理文本、查资料、盯某个状态），别指望它跑重活。"}
+    ],
+    why: "你说你没有服务器、主要就靠手机，还要随时随地能用——那就得选专门把 agent 搬进手机的项目，而不是硬凑远程访问。",
+    links: [{t:"DSH-APP/DSHA",u:"https://github.com/DSH-APP/DSHA"}],
+    alts: ["dsh-desktop","dsh-remoteweb","imbot-astrbot"],
+    sysNotes: {
+      win: "用 Windows 电脑做首次部署要先装 ADB 驱动，装好之后再插线。",
+      mac: "macOS 上 ADB 免驱，插上就能用。",
+      linux: "Linux 上装 adb 就一条命令，最适合当首次部署的辅助机。",
+      mixed: "手机端跑起来之后就和桌面系统无关了，但首次部署用 Linux 机器最顺。"
+    },
+    pitfalls: [
+      "手机上的 agent 受电量、后台被杀、存储权限的限制，做长期任务很不稳。",
+      "这是<b>社区项目</b>，不是官方发行版；机型兼容性和升级路径都要自己盯着。",
+      "手机上装着你的 API key 和工作文件——锁屏密码、应用权限都得认真设。"
+    ]
+  },
+
+  /* ---------- 聊天机器人 ---------- */
+  "imbot-astrbot": {
+    name: "AstrBot + NapCat（Docker 自建聊天机器人）",
+    tagline: "让 AI 直接活在 QQ / 微信 / Telegram 里，你和朋友在群里 @ 它就能用。",
+    badges: [{t:"多平台",c:"ok"},{t:"Docker 部署",c:"acc"},{t:"微信有封号风险",c:"warn"}],
+    prep: [
+      "一台能跑 Docker、24 小时在线的机器（服务器 / NAS / 常在线的电脑都算）。",
+      "一个用于登录的机器人账号：QQ 走 NapCat 一类协议端；微信要额外折腾第三方协议端。",
+      "API key，或者接你自己的本地模型。"
+    ],
+    steps: [
+      {t:"<b>部署 AstrBot</b>：它是多平台 LLM 机器人框架，支持 Docker 一键部署，自带 Web 管理面板。", code:"docker run -d -p 6185:6185 soulter/astrbot:latest"},
+      {t:"<b>接 QQ 用 NapCat</b>：NapCat 负责登录 QQ 并转发消息，AstrBot 负责接模型和管逻辑，两者对接后即可在群里 @ 它。"},
+      {t:"<b>在面板里填模型</b>：支持 OpenAI 格式的各类接口（DeepSeek / Ollama / OneAPI 等），填 key 和 base url 即可。"},
+      {t:"<b>先在一个只有自己的小号群里测</b>：确认收发消息、上下文、图片文件处理都正常，再拉进真实群。"},
+      {t:"<b>最后才想插件和人设</b>：AstrBot 有插件市场（搜索、画图、语音、定时推送等），按需装。"}
+    ],
+    why: "你要它出现在聊天平台里接待人，而且你有能跑 Docker 的机器——自建 AstrBot 是最成熟、平台覆盖最广的一条路。",
+    links: [
+      {t:"AstrBot",u:"https://github.com/AstrBotDevs/AstrBot"},
+      {t:"NapCat + AstrBot 部署教程",u:"https://post.smzdm.com/p/a94o049p/"},
+      {t:"Docker 部署教程（cpolar）",u:"https://www.cpolar.com/blog/5-minute-deployment-of-astrbotnapcat-connect-deepseekai-to-your-qq-with-docker"}
+    ],
+    alts: ["imbot-hosted","docker-selfhost","dsh-remoteweb"],
+    sysNotes: {
+      win: "Windows 上用 Docker Desktop 只能算验证，长期常驻还是建议放到 Linux 主机。",
+      mac: "macOS 同上：适合验证，不适合长期常驻。",
+      linux: "Linux 上最合适，配 systemd 加自动重启。",
+      mixed: "部署在 NAS 时，重点给协议端（NapCat）配掉线告警。"
+    },
+    pitfalls: [
+      "<b>账号风险排第一位</b>：用第三方协议端接微信或 QQ 有被限制甚至封号的可能，别拿主号上，更别拿别人的号试。",
+      "机器人进了群等于<b>所有人都在消耗你的 token</b>。一定要设使用权限、白名单、每人每日额度。",
+      "群消息是公开的，别让它读你的私密文件或工作目录。",
+      "协议端（NapCat 等）经常需要跟着平台更新，掉线是常态，做好重启告警。"
+    ]
+  },
+
+  "imbot-hosted": {
+    name: "没有常驻机器？先在本机 Docker 跑通，再决定租不租服务器",
+    tagline: "别一上来就买服务器。先在电脑上用 Docker Desktop 把机器人跑起来，验证你真的需要它全天在线。",
+    badges: [{t:"零服务器起步",c:"ok"},{t:"电脑关机就下线",c:"warn"},{t:"验证后再花钱",c:"acc"}],
+    prep: [
+      "你的日常电脑加 Docker Desktop（Windows / macOS 都行）。",
+      "一个测试用小号，加 API key。"
+    ],
+    steps: [
+      {t:"<b>先本地跑通</b>：装 Docker Desktop，按 AstrBot 的 Docker 方式起服务，用测试小号接 NapCat，验证「@ 它，它回话」这条链路。"},
+      {t:"<b>跑一周再判断</b>：如果只是偶尔自己用，电脑开着时能用就够了，不必花钱；如果发现朋友白天都在用、你一关电脑就有人问怎么没了，那才说明需要常驻。"},
+      {t:"<b>要常驻再租机器</b>：一台最便宜的 VPS 就够跑这种轻量服务（重点看：能不能装 Docker、内存 1G 以上、机房到你常用网络的延迟可接受）。"},
+      {t:"<b>上云后照搬同样的 compose</b>：本地验证过的配置直接搬，只是多一层域名加 HTTPS。"}
+    ],
+    why: "你想让 AI 出现在聊天平台里，但没有 24 小时在线的机器——先用本机 Docker 验证需求，避免为了试试先掏钱。",
+    links: [
+      {t:"AstrBot",u:"https://github.com/AstrBotDevs/AstrBot"},
+      {t:"Docker Desktop",u:"https://www.docker.com/products/docker-desktop/"}
+    ],
+    alts: ["imbot-astrbot","chat","dsh-desktop"],
+    sysNotes: {
+      win: "Windows 上用 Docker Desktop（WSL2 后端）验证即可。",
+      mac: "macOS 上用 Docker Desktop 验证即可。",
+      linux: "Linux 上直接 docker compose，之后搬到 VPS 几乎零改动。",
+      mixed: "本地验证和云端部署尽量用同一套 compose，减少差异。"
+    },
+    pitfalls: [
+      "别把「我需要一个 7×24 的机器人」当默认前提——很多人的真实需求只是「我在的时候能用」。",
+      "租了服务器不代表就稳：协议端掉线、证书过期、磁盘满，都会让机器人静默死掉，记得配告警。"
+    ]
+  },
+
+  /* ---------- 写代码 ---------- */
+  opencode: {
+    name: "opencode（开源编码 agent）",
+    tagline: "住在终端里的开源编码 agent：模型随便换，不被任何一家厂商锁死。",
+    badges: [{t:"开源可审计",c:"ok"},{t:"可换模型",c:"ok"},{t:"终端操作",c:"acc"}],
+    prep: [
+      "一个终端加 Node 环境（或按官方文档用包管理器装）。",
+      "至少一个模型的 key：可以是 DeepSeek 这类便宜好用的，也可以是别家。"
+    ],
+    steps: [
+      {t:"<b>装好并进入你的项目目录</b>（在项目根目录启动，它才能看到你的代码）：", code:"cd your-project\nopencode"},
+      {t:"<b>配模型</b>：在配置里指定 provider 和模型，key 走环境变量，别写死在配置文件里再提交上去。"},
+      {t:"<b>从小任务开始</b>：让它解释某个函数、给某个模块补测试，确认读文件、改文件、跑命令这条链路你都能看到、能回滚。"},
+      {t:"<b>接进 Git 工作流</b>：每个任务开一个新分支，改动先 review 再合；agent 写的代码要当同事写的代码一样审。"},
+      {t:"<b>更在意界面就看同类</b>：想在编辑器里点着用就看 <b>Cline</b>（VS Code 插件，图形界面）；想要极简的 diff 驱动就看 <b>Aider</b>；想跟着大厂订阅走就看 Claude Code 或 Codex CLI。"}
+    ],
+    why: "你要它进仓库改代码，同时想开源、能随时换模型、不被厂商绑定——opencode 这一类正合适。",
+    links: [
+      {t:"opencode",u:"https://github.com/sst/opencode"},
+      {t:"opencode 入门指南",u:"https://github.com/wesammustafa/opencode-primer"},
+      {t:"opencode vs Claude Code",u:"https://apifox.com/apiskills/opencode-vs-claude-code-comparison/"}
+    ],
+    alts: ["claude-code","cn-cli","dsh-cli"],
+    sysNotes: {
+      win: "Windows 上建议在 WSL 或 Git Bash 里跑，少踩路径和换行符的坑。",
+      mac: "macOS 上直接跑；注意别把整个用户目录交给它。",
+      linux: "Linux 上直接跑，注意文件权限和 sudo 边界——别让它拿到 root。",
+      mixed: "多系统下每个系统单独配 key，别用同一份配置文件跨系统同步。"
+    },
+    pitfalls: [
+      "它能改你的代码，也就能删你的代码。<b>先保证项目在 Git 里且已提交</b>，再让它动手。",
+      "模型换得自由，能力差距也真实存在：同一个 agent，换个弱模型就是完全不同的体验。",
+      "别让它在没有测试的项目上大改：没有验证手段，你只能靠肉眼 review，很容易翻车。"
+    ]
+  },
+
+  "cn-cli": {
+    name: "Qwen Code / Kimi CLI（国产开源 CLI）",
+    tagline: "开源的命令行编码 agent，接国产模型，按量付费，支付宝直充。",
+    badges: [{t:"开源可审计",c:"ok"},{t:"国内支付",c:"acc"},{t:"按量付费",c:"acc"}],
+    prep: [
+      "Node 或 Python 环境（看具体项目要求）。",
+      "一个国产模型的 key：通义、Kimi、DeepSeek、智谱都能接。"
+    ],
+    steps: [
+      {t:"<b>装 CLI</b>：按各自官方仓库的说明安装（多数走 npm 全局安装，或提供一键脚本）。"},
+      {t:"<b>在项目根目录启动</b>，配好 provider 和 key：key 走环境变量，不要写进配置文件再提交。"},
+      {t:"<b>先小任务验证</b>：读文件、改一个函数、跑一次测试，确认整条链路你都能看到、能回滚。"},
+      {t:"<b>接进 Git 工作流</b>：一个任务一个分支，改动先 review 再合。"},
+      {t:"<b>盯住用量</b>：按量付费意味着它真在花你的钱，先配余额或用量提醒再放开用。"}
+    ],
+    why: "你要开源、能换模型、还要按量付费，Qwen Code 和 Kimi CLI 这一类最贴合。",
+    links: [
+      {t:"Qwen Code",u:"https://github.com/QwenLM/qwen-code"},
+      {t:"Kimi CLI",u:"https://github.com/MoonshotAI/kimi-cli"},
+      {t:"Qwen Code vs Kimi Code 选型对比",u:"https://aistacknav.com/qwen-code-vs-kimi-code/"}
+    ],
+    alts: ["zhipu-plan","opencode","dsh-cli"],
+    sysNotes: {
+      win: "Windows 上建议走 WSL，npm 全局装的 CLI 在原生环境里路径问题较多。",
+      mac: "macOS 上直接可用。",
+      linux: "Linux 上直接可用，注意别用 root 跑 agent。",
+      mixed: "每个系统单独装、单独配 key，别共享一份凭据。"
+    },
+    pitfalls: [
+      "各家 CLI 迭代很快，命令和配置经常变，遇到不一致先看官方仓库的最新说明。",
+      "按量付费加 agent 反复读文件，账单可能明显高于你的预期。",
+      "开源不等于经过安全审计，它一样能读写你的整个仓库。"
+    ]
+  },
+
+  "claude-code": {
+    name: "Claude Code（或 Codex CLI）：跟着你已有的订阅走",
+    tagline: "已经付了 Claude 或 ChatGPT 的钱，就别再单买一份额度：直接用官方自家的 agent。",
+    badges: [{t:"体验最整",c:"ok"},{t:"有安全与封号争议",c:"warn"},{t:"支付门槛高",c:"warn"}],
+    prep: [
+      "Claude 或 ChatGPT 的订阅（Pro / Max / Plus 一类），或对应的 API 额度。",
+      "终端环境加 Node（Claude Code 走 npm 安装）。"
+    ],
+    steps: [
+      {t:"<b>先把争议看清楚，再决定用不用</b>：见下面「别踩这些」第一条。如果你在意的正是数据边界，建议先回到上一题选开源可审计那条路。"},
+      {t:"<b>选一家，别两家都折腾</b>：手上是 Claude 订阅就走 Claude Code；是 ChatGPT 订阅就走 Codex CLI。两边同时配置只会让你分不清哪个额度在扣。"},
+      {t:"<b>装好并登录授权</b>：按官方文档安装后首次运行会引导你登录，跟着走即可。", code:"npm install -g @anthropic-ai/claude-code"},
+      {t:"<b>在项目根目录启动</b>，先用它做一件有明确验收标准的事（给某个函数加边界检查并补测试）。"},
+      {t:"<b>养成两个习惯</b>：任务开始前保证工作区干净（已提交）；任务结束后用 <code>git diff</code> 看它到底改了什么。"}
+    ],
+    why: "你已经能稳定支付美元订阅、并且手上有 Claude 或 ChatGPT 的额度。",
+    links: [
+      {t:"Claude Code",u:"https://docs.claude.com/en/docs/claude-code/overview"},
+      {t:"Codex CLI",u:"https://github.com/openai/codex"},
+      {t:"环球时报社评：警惕 AI 时代的特洛伊木马",u:"http://en.people.cn/n3/2026/0710/c90000-20476592.html"}
+    ],
+    personal: { by:"博馍馍", text: PERSONAL_NOTE },
+    alts: ["zhipu-plan","opencode","cn-cli"],
+    sysNotes: {
+      win: "Windows 上按官方文档走 WSL 或原生安装，别两套环境混用。",
+      mac: "macOS 原生支持最完整。",
+      linux: "Linux 原生支持；国内环境下请把下面的合规与封号风险一并考虑。",
+      mixed: "不同系统的登录态和授权是分开的，别在多个环境反复切换账号，容易触发风控。"
+    },
+    pitfalls: [
+      "<b>争议本身要讲清楚</b>：2026 年 4–6 月的多个版本被指在未获同意的情况下回传用户信息，工信部下属国家漏洞库发布过安全后门预警；后续报道指出它是通过替换系统提示词里撇号的 Unicode 编码来编码检测结果、识别用户所在地域，工信部下属平台据此发布风险提示，包括阿里在内的多家企业内部禁用。Anthropic 方面辩称是为了防止账号滥用与模型蒸馏。无论你采信哪一方，<b>结论一样：用之前查最新通报与官方回应，别在主力生产机上裸用</b>。",
+      "<b>封号与 KYC</b>：社区里已有大量封号自救与防封指南，说明账号稳定性对大陆用户是个现实问题。别把重要工作流押在一个可能突然登不上的账号上。",
+      "<b>支付门槛</b>：订阅需要外卡或特殊渠道；代充违反条款且封号后无申诉。付款不便时，走国产订阅（如智谱 GLM Coding Plan）比走中转或代充干净得多。",
+      "订阅型额度通常有<b>窗口限制</b>（几小时内的用量上限），跑大任务时会被卡住，别在赶工时才发现。"
+    ]
+  },
+
+  "zhipu-plan": {
+    name: "智谱 GLM Coding Plan（配 ZCode，或驱动 Claude Code / Cline / opencode）",
+    tagline: "国内可达、支付宝可付的订阅方案；但它的自家工具出过工作区上传事件，用它要带着数据边界意识。",
+    badges: [{t:"国内可支付",c:"ok"},{t:"开源存疑",c:"warn"},{t:"曾发生上传事件",c:"warn"}],
+    prep: [
+      "一个智谱开放平台（bigmodel.cn）账号，支付宝或微信付款即可。",
+      "想继续用 Claude Code 的话先把它装好——Claude Code 在这里只是一个壳，模型换成 GLM。",
+      "理解两个额度窗口：每 5 小时的限额，加每周的总限额。",
+      "先把敏感目录排除在外：给它单独的代码目录，密钥和真机凭据不要放在工作区里。"
+    ],
+    steps: [
+      {t:"<b>先知道发生过什么</b>：2026 年 9 月，开发者逆向发现 ZCode 只要处于登录状态，就会在后台把整个工作区加密打包上传（目标为云 OSS）——包含源码、完整 Git 历史、LFS 大文件缓存、reflog 与部分全局开发配置；加密用的 RSA 公钥由服务端动态下发，私钥只在云端，<b>用户自己都解不开本地生成的包</b>；该机制默认开启，界面上找不到关闭项。智谱数小时内致歉，称源于默认开启的代码库索引功能，随后发版移除上传链路，并宣布开源代码库、引入第三方审计。"},
+      {t:"<b>「开源」这一步要打个问号</b>：率先披露的开发者复核后指出，开源仓库的历史记录被彻底洗净，而且<b>锁了 PR、关了 Issue</b>——这是单向投喂式的开源，社区称之为「阴阳开源」：能看，但不能参与，也无法确认放出来的就是实际运行的那份代码。他还追问官方没有回答的问题：立即销毁怎么从外部证明、云端到底留存了什么、开源会不会带上被捕获的旧版上传 sidecar。"},
+      {t:"<b>还有一个无法倒推的问题</b>：哪怕日后出具完整的第三方静态核验报告，也只能证明存储桶在某一天之后确实被清空，<b>无法倒推此前流进去的数据有没有被解密、同步或备份过</b>。历史数据的生命周期，没法靠事后单次审计自证。"},
+      {t:"<b>订阅套餐</b>：到 <code>bigmodel.cn</code> 的 GLM Coding Plan 页面按用量选档，国内站直接用支付宝付。"},
+      {t:"<b>拿到接入信息</b>：套餐文档会给你 base url 和 key；官方也提供了把套餐接进各家编码工具的助手工具。"},
+      {t:"<b>选你的壳</b>：可以直接用官方自家的编码工具 <code>zcode.z.ai</code>、<code>autoclaw.z.ai</code>；也可以把它接到 Claude Code、Cline、opencode 里当模型后端——如果你更在意可控性，后一种更符合本页的逻辑。"},
+      {t:"<b>按三条纪律去用</b>：单独的工作目录、专用 key 加额度上限、定期看一眼出站流量。"},
+      {t:"<b>先小任务验证额度消耗</b>：盯一眼 5 小时窗口和每周窗口的剩余，跑大重构之前先确认够不够。"}
+    ],
+    why: "你付美元订阅不方便、或不想承担封号风险，但想要订阅制加国内支付的省心形态。",
+    links: [
+      {t:"GLM Coding Plan（bigmodel.cn）",u:"https://www.bigmodel.cn/glm-coding"},
+      {t:"官方文档 Overview",u:"https://docs.z.ai/devpack/overview"},
+      {t:"ZCode 上传事件报道（新浪财经）",u:"https://finance.sina.com.cn/roll/2026-10-01/doc-initstui1351408.shtml"}
+    ],
+    personal: { by:"博馍馍", text: PERSONAL_NOTE },
+    alts: ["cn-cli","opencode","claude-code"],
+    sysNotes: {
+      win: "Windows 上接 Claude Code 或 Cline 都行；重点是别让它扫全盘，单独给一个工作目录。",
+      mac: "macOS 上同理；想最省事就用它自家的 ZCode / AutoClaw 客户端。",
+      linux: "Linux 上接 Claude Code 或 opencode 都可以，命令行配置更透明，也更方便审出站流量。",
+      mixed: "无论哪个系统：把敏感目录排除在索引之外，别把整机交给它。"
+    },
+    pitfalls: [
+      "<b>历史事件：</b>工作区打包上传（含 Git 全历史与云凭证）已经真实发生过一次，整改也真实发生过。用它的正确姿势是「知道边界再用」，而不是「相信它不会再犯」。",
+      "<b>开源存疑不等于已可信：</b>代码放出来了，但历史被洗净、PR 被锁、Issue 被关——你既没法参与也无法比对「仓库里的代码」和「你机器上跑的代码」是不是同一份。对要求可审计的人来说，这不算满足开源要求。",
+      "它的用户协议授权范围很宽，同时又建议你别在这台机器上放重要数据——这两句话放在一起，已经说明了你该怎么做。",
+      "双窗口额度（5 小时加每周）是真实限制，连轴跑大任务会被卡住，别把它当成无限量。",
+      "和顶级闭源模型仍有差距：复杂任务要拆小步、给它测试或验证手段，别指望一句话搞定整个重构。"
+    ]
+  },
+
+  "relay-risk": {
+    name: "别买中转 API、别找人代充：省下的钱不值这个风险",
+    tagline: "中转站会掺水、会投毒、会一夜关停；代充违反条款，封号后你连申诉对象都没有。",
+    badges: [{t:"高风险",c:"warn"},{t:"省钱是假象",c:"warn"}],
+    verdict:"care",
+    prep: [
+      "先算清账：你省下的是月费差价，可能赔进去的是代码、业务数据和账号。"
+    ],
+    steps: [
+      {t:"<b>搞清楚中转到底是什么</b>：它替你把请求转发给模型，也就意味着你的全部输入——代码、密钥、业务数据——都经过它的服务器。已有公开测评指出存在掺水和投毒的情况。"},
+      {t:"<b>只是为了省钱？</b>走国产按量付费（Qwen Code 或 Kimi CLI 配国产模型 key），或者买国内可付的订阅，都比中转干净。"},
+      {t:"<b>只是付款不便？</b>用国内能直接支付的方案，而不是代充。代充本身违反服务条款，账号被封时你没有任何申诉渠道。"},
+      {t:"<b>确实非要用中转</b>：只给它非敏感项目、单独申请 key、设死额度上限，并且做好它随时关停的准备——别把唯一的工作流押在上面。"},
+      {t:"<b>更稳的替代</b>：把模型换成国产的、把工具换成开源的，你既省了钱，也拿回了可控性。"}
+    ],
+    why: "你在考虑中转 API 或找人代充，这条路的风险值得单独讲清楚。",
+    links: [
+      {t:"大模型中转站研究与测评报告 2026",u:"https://github.com/AITrustTools/llm-relay-assessment"},
+      {t:"中转站除了掺水还会投毒",u:"https://www.appinn.com/ai-agent-full-access-security-risk/"},
+      {t:"中转站关停之后怎么办",u:"https://cloud.tencent.com.cn/developer/article/2706927"}
+    ],
+    alts: ["cn-cli","zhipu-plan","opencode"],
+    pitfalls: [
+      "数据面：中转能拿到你发给模型的全部内容，包括源码和密钥；已有报告指出存在掺水与投毒。",
+      "稳定性：服务随时可能关停，你搭在上面的工作流会一夜之间失效。",
+      "账号面：代充和共享账号违反服务条款，封号后没有申诉渠道，也没有退款。",
+      "价格面：中转的低价本身不可持续，靠它建立的长期工作流迟早要重做。"
+    ]
+  }
+};
+
+/* =========================================================================
+   2. 每条结论的「开源 / 数据去向」档案——用来对照用户设的红线
+   ========================================================================= */
+const META = {
+  basics:          { open:null,  level:"na",    data:"不涉及具体工具，只讲概念。" },
+  databoundary:    { open:null,  level:"na",    data:"这一页本身就是防数据外流的操作指南。" },
+  chat:            { open:false, level:"cloud", data:"你输入的内容都留在厂商服务器上，由厂商的条款约束。" },
+  "dsh-desktop":   { open:true,  level:"cloud", data:"底座 DSH 是 MIT 开源；代码与文件会送到你自己配置的模型接口处理，工作目录由你指定。" },
+  "dsh-cli":       { open:true,  level:"cloud", data:"DSH 开源，可自查代码；数据去向取决于你接的模型接口，可以换成本地模型。" },
+  "dsh-remoteweb": { open:true,  level:"cloud", data:"服务跑在你自己机器上，但暴露端口后有被外部访问的风险，需要认证加 HTTPS。" },
+  "docker-selfhost":{ open:true, level:"low",   data:"会话与工作区都在你自己的服务器上，只有模型推理走云端——最容易做到数据自控的一条。" },
+  dsha:            { open:true,  level:"cloud", data:"工具在你自己手机上，数据去向取决于你接的模型接口；工作文件留在本机。" },
+  "imbot-astrbot": { open:true,  level:"cloud", data:"框架自建、消息在你自己的服务器上，但群消息与文件会送到你接的模型。" },
+  "imbot-hosted":  { open:true,  level:"cloud", data:"同自建机器人：框架可控，模型侧仍是云端处理。" },
+  opencode:        { open:true,  level:"cloud", data:"代码公开可审计；模型可换成任意一家甚至本地模型，数据去向由你自己选。" },
+  "cn-cli":        { open:true,  level:"cloud", data:"代码公开可审计；接国产模型，数据不出境这一点通常更容易满足合规要求。" },
+  "claude-code":   { open:false, level:"warn",  data:"2026 年 4–6 月版本被指未获同意回传信息，后续报道指其用替换撇号 Unicode 的方式探测用户地域；工信部下属平台发过风险提示，多家企业内部禁用。" },
+  "zhipu-plan":    { open:"disputed", level:"warn", data:"2026 年 9 月其自家工具被发现静默打包整个工作区（含 Git 全历史、reflog、LFS 缓存）上传到云 OSS，加密包公钥由服务端下发、用户自己都无法解密，且默认开启、界面无关闭项；事后移除上传链路并宣称开源，但被指开源仓库历史被洗净、锁 PR 关 Issue，属单向投喂（社区称「阴阳开源」）。额度侧仍是云端处理。" },
+  "relay-risk":    { open:null,  level:"warn",  advice:"avoid", data:"中转方能看到你发给模型的全部内容，已有公开测评指出存在掺水与投毒。" }
+};
+
+/* =========================================================================
+   3. 决策树
+   ========================================================================= */
+const NODES = {
+  q0: {
+    q: "你想要的，是一个能替你真的动手干活的 AI（写代码、改文件、跑命令），而不只是陪聊天的 AI 吗？",
+    sub: "这一题决定后面所有分支。",
+    options: [
+      { t:"是，我要它动手干活", s:"帮我改文件、跑命令、定时做任务", next:"qb1", reason:"你要 AI 动手干活" },
+      { t:"不是，我就是想聊天、问问题、写点文字", s:"偶尔用，不打算把它当工具", next:"chat", reason:"你只需要聊天问答" }
+    ]
+  },
+
+  /* ---------- 基础关 ---------- */
+  qb1: {
+    phase: "基础关 · 1/5",
+    q: "先过四个基础问题。第一个：你知道 API key 是什么、大概在哪儿申请吗？",
+    sub: "几乎所有 agent 都要你填一个 API key，它是按量计费的凭证。",
+    options: [
+      { t:"知道，我申请过，或者知道去哪儿申请", next:"qb2", reason:"你知道 API key 是什么" },
+      { t:"不知道，或者说不清", s:"先给我补一下概念", next:"basics", reason:"你还不清楚 API key 是什么" }
+    ]
+  },
+  qb2: {
+    phase: "基础关 · 2/5",
+    q: "第二个：命令行（终端 / PowerShell / cmd）你熟吗？",
+    sub: "很多 agent 是命令行工具，这一题决定要不要给你绕开终端。",
+    options: [
+      { t:"熟，平时就在用", next:"qsys", reason:"你熟悉命令行" },
+      { t:"会一点，跟着教程能敲", next:"qsys", reason:"你能跟着教程敲命令" },
+      { t:"完全不懂命令行", s:"那就别走终端路线", next:"dsh-desktop", reason:"你完全不懂命令行" }
+    ]
+  },
+  qsys: {
+    phase: "基础关 · 3/5",
+    q: "第三个：你电脑上的主力系统是哪个？（有 Linux 机器也算）",
+    sub: "同一套方案在 Windows、macOS、Linux 上的坑完全不同，我会按你的系统给具体提醒。",
+    options: [
+      { t:"Windows", next:"qb3", sys:"win", reason:"你的主力系统是 Windows" },
+      { t:"macOS", next:"qb3", sys:"mac", reason:"你的主力系统是 macOS" },
+      { t:"Linux（主力就在 Linux 上）", next:"qb3", sys:"linux", reason:"你的主力系统是 Linux" },
+      { t:"我有 Linux 机器，但主力不是它", s:"服务器 / NAS / 双系统", next:"qb3", sys:"mixed", reason:"你有 Linux 机器但不是主力" }
+    ]
+  },
+  qb3: {
+    phase: "基础关 · 4/5",
+    q: "你在意「工具可能把你的数据传到你看不见的地方」这件事吗？",
+    sub: "这一题是红线题：选了在意，后面有些闭源或有回传争议的方案我会直接不给你推。",
+    options: [
+      { t:"在意，我不想让工具拿我的数据", sets:{privacy:"care"}, next:"qos", reason:"你在意自己的数据被传走" },
+      { t:"在意，但我不太清楚该防什么", sets:{privacy:"care"}, next:"databoundary", reason:"你在意隐私，但还不清楚该防什么" },
+      { t:"不太在意，方便好用更重要", sets:{privacy:"casual"}, next:"qos", reason:"你不介意数据边界，方便优先" }
+    ]
+  },
+  qos: {
+    phase: "基础关 · 5/5",
+    q: "你在意框架是不是开源的吗？",
+    sub: "开源 = 代码公开，你能自己看出它到底往外面传了什么；闭源就只能信厂商的说法。",
+    options: [
+      { t:"在意，我要能审计的开源项目", sets:{opensrc:"require"}, next:"q1", reason:"你在意框架是否开源、要看得到代码" },
+      { t:"不在意，谁好用就用谁", sets:{opensrc:"any"}, next:"q1", reason:"你不介意开源与否，好用优先" }
+    ]
+  },
+
+  /* ---------- 主流程 ---------- */
+  q1: {
+    q: "你主要是在电脑上写代码、做开发吗？",
+    sub: "编码向和通用向的框架，是完全两套东西。",
+    options: [
+      { t:"是，我主要写代码", s:"有代码仓库、要它进仓库改", next:"q2", reason:"你主要写代码" },
+      { t:"不是，我干的是别的活", s:"运维、资料整理、办公、杂活", next:"q5", reason:"你要它处理的是非编码的活" },
+      { t:"我想让它替我在群里、跟朋友对话", s:"当个机器人接待人用", next:"q9", reason:"你要一个能对话的机器人" }
+    ]
+  },
+  q2: {
+    q: "你想要的是住在终端或编辑器里、直接在代码仓库里改代码的那种编码 agent，对吗？",
+    sub: "比如帮你读整个项目、写补丁、跑测试、提提交。",
+    options: [
+      { t:"对，我要它进仓库改代码", s:"要 diff、要能 review 改动", next:"q3", reason:"你要一个进仓库的编码 agent" },
+      { t:"不太是，我更想要一个通用助手", s:"什么活都干一点，不只写代码", next:"q5", reason:"你更想要通用助手而不是编码专用工具" }
+    ]
+  },
+  q3: {
+    q: "你能稳定地支付美元订阅吗？（对大陆用户来说，这一题通常会卡住）",
+    sub: "Claude 或 ChatGPT 的订阅需要外卡或特殊渠道；代充和中转站还有额外风险。",
+    options: [
+      { t:"能，而且我已经有 Claude 或 ChatGPT 的订阅额度", blockedBy:[{k:"privacy",v:"care"},{k:"opensrc",v:"require"}], guard:"g-cc", next:"claude-code", reason:"你已有可用的美元订阅" },
+      { t:"能，但我还没订阅", s:"先看看值不值得付", next:"q4", reason:"你付得起，但还没决定买什么" },
+      { t:"不能，或者嫌麻烦、怕封号", s:"想用支付宝就能付的国产方案", next:"q7", reason:"你付款不便，倾向国产方案" },
+      { t:"我打算买中转 API，或者找人代充", s:"便宜、不用自己弄卡", next:"relay-risk", reason:"你在考虑中转或代充" }
+    ]
+  },
+  q4: {
+    q: "那你想按订阅走，还是按量付费走？",
+    sub: "订阅省心但额度有窗口；按量付费便宜，但要自己盯消耗。",
+    options: [
+      { t:"订阅，省心最重要", s:"不想算 token 账", blockedBy:[{k:"privacy",v:"care"},{k:"opensrc",v:"require"}], guard:"g-cc", next:"claude-code", reason:"你愿意付订阅换省心" },
+      { t:"按量付费就好", s:"用多少付多少", next:"opencode", reason:"你想按量付费、自由换模型" }
+    ]
+  },
+  q7: {
+    q: "国产方案你想怎么走？",
+    sub: "国产不只有一种：订阅套餐、开源 CLI 按量付费，或者只买 DeepSeek 的额度。",
+    options: [
+      { t:"订阅套餐，支付宝就能付，省心", s:"如智谱 GLM Coding Plan", blockedBy:[{k:"privacy",v:"care"},{k:"opensrc",v:"require"}], guard:"g-zp", next:"zhipu-plan", reason:"你想要订阅制、能在国内支付的套餐" },
+      { t:"开源 CLI，按量付费，最省", s:"如 Qwen Code、Kimi CLI", next:"cn-cli", reason:"你想要开源 CLI 加按量付费" },
+      { t:"我想要 Claude Code 那种手感，但用国产额度", s:"壳不变，模型换掉", blockedBy:[{k:"privacy",v:"care"},{k:"opensrc",v:"require"}], guard:"g-zp", next:"zhipu-plan", reason:"你想要熟悉的工具形态配国产额度" },
+      { t:"我只想用 DeepSeek 的额度", s:"按量充，最便宜", next:"dsh-desktop", reason:"你只想用 DeepSeek 的额度" }
+    ]
+  },
+
+  /* ---------- 红线拦截 ---------- */
+  "g-cc": {
+    phase: "红线拦截",
+    q: "这条先拦一下：你前面说了在意隐私 / 要能审计的开源，而 Claude Code 是闭源的，且正处于被指回传数据的争议里。",
+    sub: "你可以确认接受这个代价，也可以换一条同样满足你需求的路。",
+    options: [
+      { t:"我知道这些，我还是要用它", s:"接受它的代价，继续给我这条", sets:{ack:"claude-code"}, next:"claude-code", reason:"你在知情后仍选择接受闭源与争议" },
+      { t:"换开源可审计的编码 agent", s:"opencode，模型自己换", next:"opencode", reason:"你选了开源可审计的编码 agent" },
+      { t:"换国产开源 CLI", s:"Qwen Code / Kimi CLI，按量付费", next:"cn-cli", reason:"你选了国产开源 CLI" },
+      { t:"我先去搞清楚数据边界到底怎么防", next:"databoundary", reason:"你要先弄明白数据边界怎么防" }
+    ]
+  },
+  "g-chat": {
+    phase: "红线拦截",
+    q: "这条先拦一下：你要求「框架必须开源可审计」，但官方 App / 网页版是闭源产品，你只能信厂商的说法。",
+    sub: "要么知情接受，要么用一套代码公开、能自查的方案——哪怕多花十分钟配置。",
+    options: [
+      { t:"我知道它闭源，我还是要用", s:"接受这一点，继续给我这条", sets:{ack:"chat"}, next:"chat", reason:"你在知情后仍接受使用闭源产品" },
+      { t:"换开源自托管的方案", s:"Docker 自托管，数据在自己服务器上", next:"docker-selfhost", reason:"你换成开源自托管方案" },
+      { t:"换开源的命令行底座", s:"dsh CLI，代码公开可审计", next:"dsh-cli", reason:"你换成开源命令行底座" },
+      { t:"先补一下数据边界的知识", next:"databoundary", reason:"你要先弄明白数据边界怎么防" }
+    ]
+  },
+  "g-zp": {
+    phase: "红线拦截",
+    q: "这条先拦一下。这个套餐的自家工具 2026 年 9 月被开发者逆向发现：登录状态下静默把整个工作区（含 Git 全历史、reflog、LFS 缓存）打包上传到云 OSS，加密公钥由服务端下发、用户自己都解不开，默认开启且界面上没有关闭项。事后它移除上传链路，并宣称开源——但被指开源仓库历史被洗净、锁了 PR、关了 Issue，也就是说放出来的未必就是实际运行的那份代码（社区称「阴阳开源」）。",
+    sub: "整改是真的，开源存疑也是真的。你要么知情接受，要么换成真正可审计的东西。",
+    options: [
+      { t:"我知道，我还是要用这个套餐", s:"接受它的历史与现状", sets:{ack:"zhipu-plan"}, next:"zhipu-plan", reason:"你在知情后仍选择接受它的历史与现状" },
+      { t:"我要用开源壳（opencode / Cline）配这个套餐的额度", s:"壳开源，额度用国产", sets:{ack:"zhipu-plan"}, next:"zhipu-plan", reason:"你要求用开源壳来规避客户端风险" },
+      { t:"换成国产开源 CLI 按量付费", s:"Qwen Code / Kimi CLI", next:"cn-cli", reason:"你换成国产开源 CLI" },
+      { t:"我先去搞清楚数据边界到底怎么防", next:"databoundary", reason:"你要先弄明白数据边界怎么防" }
+    ]
+  },
+  q5: {
+    q: "你希望这个 AI 常驻在某台机器上、让你随时（哪怕不在电脑前）叫它干活吗？",
+    sub: "随时随地是另一个物种：要解决常驻、访问、稳定性。",
+    options: [
+      { t:"需要，我要随时随地能用", s:"在手机上、在外面也要能用", next:"q6", reason:"你要随时随地能用" },
+      { t:"不需要，我就坐在自己电脑前用它", s:"开机才用，关机就算了", next:"q8", reason:"你只在自己电脑前用它" }
+    ]
+  },
+  q6: {
+    q: "那个常驻的机器，实际是哪一种？",
+    sub: "这决定了你是走容器、走手机，还是走远程访问。",
+    options: [
+      { t:"服务器 / NAS / 一直开着的 Linux 主机", s:"能装 Docker 那种", next:"docker-selfhost", reason:"你有能跑 Docker 的常驻机器" },
+      { t:"我没有服务器，主要就靠手机", s:"电脑不常开", next:"dsha", reason:"你主要靠手机" },
+      { t:"就是我这台常用电脑，但希望它常开、能被手机访问", s:"电脑一台，想远程用", next:"dsh-remoteweb", reason:"你打算让常用电脑常驻并远程访问" }
+    ]
+  },
+  q8: {
+    q: "你愿意敲命令行、装插件、改配置吗？",
+    sub: "说实话就行，这题没有优劣。",
+    options: [
+      { t:"愿意，我想能改能扩", s:"要插件、要能定制", next:"q11", reason:"你愿意折腾、要能扩展" },
+      { t:"不愿意，我要双击就能用", s:"给我安装包就行", next:"dsh-desktop", reason:"你要开箱即用、不碰命令行" },
+      { t:"我连 API key 都不想申请", s:"越简单越好", blockedBy:[{k:"opensrc",v:"require"}], guard:"g-chat", next:"chat", reason:"你不想申请 key，只想最省事" }
+    ]
+  },
+  q11: {
+    q: "界面你更偏哪种：图形界面，还是终端里的 TUI？",
+    sub: "同一个底座通常两种界面都有，但默认体验差别不小。",
+    options: [
+      { t:"终端 TUI，键盘流更快", s:"喜欢命令、快捷键、少动鼠标", next:"dsh-cli", reason:"你偏好终端 TUI" },
+      { t:"图形界面，看得见按钮才安心", s:"要窗口、要点着用", next:"dsh-desktop", reason:"你偏好图形界面" },
+      { t:"无所谓，能用就行", next:"dsh-cli", reason:"你对界面形态没有偏好" }
+    ]
+  },
+  q9: {
+    q: "你想让它在哪个聊天平台里接待人？",
+    sub: "平台差别很大，微信那条路的账号风险明显更高。",
+    options: [
+      { t:"QQ", next:"q10", reason:"你要接 QQ", note:"QQ 靠 NapCat 一类协议端接入，成熟但要跟着平台更新。" },
+      { t:"微信", next:"q10", reason:"你要接微信", note:"微信只能靠第三方协议端，封号风险最高，别用主号。" },
+      { t:"Telegram / Discord / 其他", next:"q10", reason:"你要接的是海外平台", note:"海外平台接入通常最省事，风险也最低。" },
+      { t:"都想要", next:"q10", reason:"你想要多平台同时支持", note:"AstrBot 这类框架本来就是多平台通吃。" }
+    ]
+  },
+  q10: {
+    q: "你有一台一直开着、能跑 Docker 的机器吗？",
+    sub: "机器人必须有个地方 24 小时待着。",
+    options: [
+      { t:"有", s:"服务器 / NAS / 常在线的电脑", next:"imbot-astrbot", reason:"你有能跑 Docker 的常驻机器" },
+      { t:"没有", s:"只有日常电脑，关机就断", next:"imbot-hosted", reason:"你没有常驻机器" }
+    ]
+  }
+};
+
+/* =========================================================================
+   3. 候选总览
+   ========================================================================= */
+const CATALOG = [
+  {g:"基础", id:"basics",          n:"先补三个概念",             d:"API key、工作目录、权限边界。不懂这三样先看这个。"},
+  {g:"基础", id:"databoundary",    n:"数据边界自查",             d:"三起真实上传事件，加沙箱、密钥隔离、出站流量三条硬措施。"},
+  {g:"入门 / 通用", id:"chat",     n:"官方 App / 网页版",        d:"纯聊天问答。不装任何框架，先确认你到底需不需要 agent。"},
+  {g:"入门 / 通用", id:"dsh-desktop", n:"DSH 桌面版",            d:"图形界面、打开就能干活，装包加 API key 两步。本页主推。"},
+  {g:"可折腾", id:"dsh-cli",       n:"DSH 命令行 + 插件生态",    d:"终端形态的开放底座：插件、人设、MCP、子 agent、定时任务。"},
+  {g:"可折腾", id:"dsh-remoteweb", n:"DSH 常驻 Web + 远程访问",  d:"常用电脑一直挂着，手机浏览器远程指挥它干活。"},
+  {g:"常驻 / 自托管", id:"docker-selfhost", n:"Docker 自托管 DSH", d:"服务器或 NAS 上的容器化方案，最稳的 7×24 形态。"},
+  {g:"常驻 / 自托管", id:"dsha",   n:"DSHA 手机版",              d:"免 root 在手机上跑完整 Linux 加 DSH，随时随地用。"},
+  {g:"聊天机器人", id:"imbot-astrbot", n:"AstrBot + NapCat",     d:"自建 QQ / 微信 / Telegram 机器人，Docker 部署，插件丰富。"},
+  {g:"聊天机器人", id:"imbot-hosted", n:"先本机验证再上云",       d:"没有常驻机器时，先用 Docker Desktop 验证，再决定租不租。"},
+  {g:"写代码", id:"opencode",      n:"opencode",                 d:"开源可审计的终端编码 agent，模型随便换。同类：Cline、Aider。"},
+  {g:"写代码", id:"cn-cli",        n:"Qwen Code / Kimi CLI",     d:"国产开源 CLI，按量付费，支付宝直充。"},
+  {g:"写代码", id:"zhipu-plan",    n:"智谱 GLM Coding Plan",     d:"国内可付的订阅；但 ZCode 出过工作区上传事件，看清边界再用。"},
+  {g:"写代码", id:"claude-code",   n:"Claude Code / Codex CLI",  d:"已有美元订阅就用官方 agent；有安全与封号争议，支付门槛也高。"},
+  {g:"避坑", id:"relay-risk",      n:"中转 API / 代充（不推荐）", d:"省钱假象：会掺水、投毒、关停，封号无申诉。"}
+];
+
+/* =========================================================================
+   4. 逻辑
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+const screens = {
+  start: $("screen-start"),
+  quiz: $("screen-quiz"),
+  result: $("screen-result"),
+  catalog: $("screen-catalog")
+};
+let visited = [];
+let cursor = null;
+let state = {};
+let reachedLeaf = null;   // 当前答题路径真正到达的结论，用来判断"这一页是不是备选"
+
+/* 红线状态 = 已做选择里所有 sets 的合并；回退时整体重算，避免状态漂移 */
+function rebuildState(){
+  state = {};
+  visited.forEach(v => {
+    const o = NODES[v.node] && NODES[v.node].options[v.optIndex];
+    if (!v.blocked && o && o.sets) Object.assign(state, o.sets);
+  });
+}
+
+function show(name){
+  Object.keys(screens).forEach(k => screens[k].classList.toggle("hide", k !== name));
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function go(nodeId){
+  if (RESULTS[nodeId]) { reachedLeaf = nodeId; return renderResult(nodeId); }
+  if (!NODES[nodeId]) { console.error("未知节点:", nodeId); return show("start"); }
+  cursor = nodeId;
+  const n = NODES[nodeId];
+  $("qIndex").textContent = "第 " + (visited.length + 1) + " 题";
+  $("qPhase").textContent = n.phase || "选路线";
+  $("qPhase").classList.toggle("base", !!n.phase);
+  $("qHint").textContent = "选完自动进入下一题";
+  $("qBar").style.width = Math.min(95, 12 + visited.length * 11) + "%";
+  $("qText").textContent = n.q;
+  $("qSub").textContent = n.sub || "";
+  $("qSub").classList.toggle("hide", !n.sub);
+
+  const box = $("qOpts");
+  box.innerHTML = "";
+  const keys = ["1","2","3","4"];
+  n.options.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    const sub = [o.s, o.note].filter(Boolean).join(" · ");
+    b.innerHTML = '<span class="k">' + keys[i] + '</span><span class="t">' + o.t +
+                  (sub ? '<span class="s">' + sub + '</span>' : '') + '</span>';
+    b.onclick = () => pick(i);
+    box.appendChild(b);
+  });
+
+  const trail = $("qTrail");
+  trail.innerHTML = "";
+  const c = document.createElement("span");
+  c.className = "crumb";
+  if (visited.length){
+    c.innerHTML = "<b>已选：</b>" + visited.map(v => NODES[v.node].options[v.optIndex].t).join(" → ");
+  } else {
+    c.textContent = "还没做选择";
+  }
+  trail.appendChild(c);
+  show("quiz");
+}
+
+function pick(i){
+  const n = NODES[cursor];
+  const o = n.options[i];
+  if (!o) return;
+
+  /* 红线拦截：选项与已设红线冲突、且用户没有确认接受过，就先走拦截页 */
+  const hit = (o.blockedBy || []).find(c => state[c.k] === c.v);
+  if (hit && state.ack !== o.next){
+    visited.push({node:cursor, optIndex:i, blocked:true});
+    rebuildState();
+    return go(o.guard);
+  }
+
+  visited.push({node:cursor, optIndex:i});
+  rebuildState();
+  go(o.next);
+}
+
+function back(){
+  if (!visited.length) return show("start");
+  const last = visited.pop();
+  rebuildState();
+  go(last.node);
+}
+
+function esc(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function renderResult(id){
+  const r = RESULTS[id];
+  if (!r) { console.error("未知结果:", id); return show("start"); }
+  const path = visited.map(v => NODES[v.node].options[v.optIndex]);
+  const blockers = visited.filter(v => v.blocked).map(v => NODES[v.node].options[v.optIndex]);
+  const sysOpt = path.filter(p => p.sys).pop();
+  const meta = META[id];
+
+  /* 结论页顶部：方案自带标签 + 用户设的红线 + 是否已在拦截页确认接受代价 */
+  const rl = [];
+  if (state.privacy) rl.push(state.privacy === "care" ? {t:"红线：在意隐私",c:"warn"} : {t:"隐私：不介意",c:"acc"});
+  if (state.opensrc) rl.push(state.opensrc === "require" ? {t:"红线：只看开源",c:"warn"} : {t:"开源：不要求",c:"acc"});
+  if (state.ack === id) rl.push({t:"已确认接受代价",c:"warn"});
+
+  let html = '';
+  html += '<div class="verdict' + (r.verdict === "care" ? " care" : "") + '">';
+  html += '<div class="tag">' + (r.verdict === "care" ? "警告" : "结论") + '</div>';
+  html += '<h2>' + r.name + '</h2>';
+  html += '<p class="line">' + r.tagline + '</p>';
+  html += '<div class="badges">' + (r.badges || []).map(b => '<span class="badge ' + b.c + '">' + b.t + '</span>').join("")
+        + rl.map(b => '<span class="badge ' + b.c + '">' + b.t + '</span>').join("") + '</div>';
+  html += '</div>';
+
+  /* 作者个人附注：放在「为什么推荐这个给你」上面，先看态度再看依据 */
+  if (r.personal){
+    html += '<div class="personal"><div class="by">' + r.personal.by + ' 提醒您</div>' +
+            '<p>「' + r.personal.text + '」</p>' +
+            '<span class="kind">以上为作者个人观点，不代表本页对任何厂商的事实认定。</span></div>';
+  }
+
+  html += '<div class="panel">';
+  html += '<h3 class="sec" style="margin-top:0">为什么推荐这个给你</h3>';
+  html += '<ul class="plain"><li>' + r.why + '</li>';
+
+  const noPath = path.length === 0;
+  const isAlt = !noPath && reachedLeaf && reachedLeaf !== id;
+
+  if (noPath){
+    // 没有答题路径：不能假装有依据，明说并给一条走回去的路
+    html += '</ul>';
+    html += '<div class="sysbox"><h4>这一页没有逐题依据</h4><p>你是从「全部候选」直接打开它的，所以前面没答过题，也就没有「你在前面选了 X，说明 Y」这串依据。走一遍决策树（大约 6–11 题），这里就会逐条列明为什么是它。</p></div>';
+    html += '<div class="row" style="margin-top:14px"><button class="btn sec" data-act="quiz">走一遍决策树 →</button></div>';
+  } else {
+    path.forEach(p => {
+      if (p.blocked){
+        html += '<li class="blocked">你本来想选 <b>' + p.t + '</b>，但它和你设的红线冲突，已经被拦下了。</li>';
+      } else if (p.reason){
+        html += '<li>你在前面选了 <b>' + p.t + '</b>，说明' + p.reason + '。</li>';
+      }
+    });
+    html += '</ul>';
+    if (isAlt){
+      html += '<div class="sysbox" style="margin-top:12px"><h4>注意：这一页是备选方案</h4><p>上面这些逐条依据对应的是「' +
+              RESULTS[reachedLeaf].name + '」那条路径，不是当前这一条。想看它自己的依据，就重新走一遍决策树。</p></div>';
+    }
+    if (blockers.length){
+      html += '<div class="warnbox" style="margin-top:12px"><h4>⚠ 被你的红线拦下过</h4><ul><li>' +
+              blockers.map(b => b.t).join("；") + '</li></ul></div>';
+    }
+    html += '<div class="row" style="margin-top:16px"><span class="crumb"><b>完整路径：</b>' +
+            path.map(p => p.t).join(" → ") + '</span></div>';
+  }
+
+  /* 对照红线逐条核查：不能只在前面问一句就完事 */
+  if (meta){
+    html += '<h3 class="sec">对照你的红线：开源与数据去向</h3><div class="sysbox"><ul class="plain">';
+    if (state.opensrc === "require"){
+      if (meta.open === true) html += '<li>✓ <b>开源要求满足</b>：代码公开，你可以自己审计它往外面传了什么。</li>';
+      else if (meta.open === false) html += '<li>⚠ <b>与你「只看开源」的要求冲突</b>：这条是闭源的' + (state.ack === id ? '——你已经确认接受。' : '。') + '</li>';
+      else if (meta.open === "disputed") html += '<li>⚠ <b>开源存疑，不算满足你的要求</b>：代码是放出来了，但仓库历史被洗净、锁了 PR 关了 Issue，你无法比对「仓库里的代码」与「实际运行的代码」是不是同一份。' + (state.ack === id ? '（你已确认接受。）' : '') + '</li>';
+      else html += '<li>— 这条不是框架本体，开源与否不适用。</li>';
+    } else if (meta.open === true) html += '<li>开源：是，代码公开可审计。</li>';
+    else if (meta.open === false) html += '<li>开源：否，闭源。你没有把这条设成红线，所以不拦。</li>';
+    else if (meta.open === "disputed") html += '<li>开源：<b>存疑</b>——宣称开源，但被指仓库历史被洗净、锁 PR 关 Issue，属单向投喂（社区称「阴阳开源」）。</li>';
+    else html += '<li>开源：不适用。</li>';
+
+    if (state.privacy === "care"){
+      if (meta.level === "low") html += '<li>✓ <b>隐私要求满足</b>：' + meta.data + '</li>';
+      else if (meta.level === "warn") html += '<li>⚠ <b>与你的隐私要求冲突</b>：' + meta.data + (state.ack === id ? '（你已确认接受这个代价。）' : '') + '</li>';
+      else if (meta.level === "na") html += '<li>— 不涉及具体工具的数据流。</li>';
+      else html += '<li>⚠ <b>代价要说清楚</b>：' + meta.data + ' 云端处理是这类工具的常态，你的红线只能靠「隔离使用」来守，不能靠厂商承诺。</li>';
+    } else {
+      html += '<li>数据去向：' + meta.data + '</li>';
+    }
+    html += '</ul></div>';
+  }
+
+  html += '<h3 class="sec">怎么开始</h3><ol class="steps">';
+  r.steps.forEach(s => {
+    html += '<li>' + s.t;
+    if (s.code) html += '<div class="cmd"><code>' + esc(s.code) + '</code><button onclick="copyCmd(this)">复制</button></div>';
+    html += '</li>';
+  });
+  html += '</ol>';
+
+  if (r.prep && r.prep.length){
+    html += '<h3 class="sec">先准备好这些</h3><ul class="plain">';
+    r.prep.forEach(p => html += '<li>' + p + '</li>');
+    html += '</ul>';
+  }
+
+  if (sysOpt && r.sysNotes && r.sysNotes[sysOpt.sys]){
+    html += '<div class="sysbox"><h4>在你的系统上：' + sysOpt.t + '</h4><p>' + r.sysNotes[sysOpt.sys] + '</p></div>';
+  }
+
+  if (r.pitfalls && r.pitfalls.length){
+    html += '<div class="warnbox"><h4>⚠ 别踩这些</h4><ul>';
+    r.pitfalls.forEach(p => html += '<li>' + p + '</li>');
+    html += '</ul></div>';
+  }
+
+  if (r.links && r.links.length){
+    html += '<h3 class="sec">相关链接</h3><div class="links">';
+    r.links.forEach(l => html += '<a class="link" href="' + l.u + '" target="_blank" rel="noopener">' + l.t + ' ↗</a>');
+    html += '</div>';
+  }
+
+  if (r.alts && r.alts.length){
+    html += '<h3 class="sec">如果这个不合适，看这两个</h3><div class="alts">';
+    r.alts.forEach(a => {
+      const x = RESULTS[a];
+      if (!x) return;
+      html += '<div class="alt" data-go="' + a + '" style="cursor:pointer"><b>' + x.name + '</b><span>' + x.tagline + '</span><em>点这张卡看它的完整方案 →</em></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  $("resBody").innerHTML = html;
+  $("resBody").querySelectorAll("[data-go]").forEach(el => {
+    el.onclick = () => renderResult(el.getAttribute("data-go"));
+  });
+  $("resBody").querySelectorAll("[data-act='quiz']").forEach(el => {
+    el.onclick = () => restart();
+  });
+  show("result");
+}
+
+function copyCmd(btn){
+  const code = btn.parentElement.querySelector("code").textContent;
+  navigator.clipboard.writeText(code).then(
+    () => { btn.textContent = "已复制"; setTimeout(() => { btn.textContent = "复制"; }, 1400); },
+    () => { btn.textContent = "请手动复制"; }
+  );
+}
+
+function renderCatalog(){
+  const box = $("catBody");
+  box.innerHTML = CATALOG.map(c =>
+    '<div class="cat" data-id="' + c.id + '" style="cursor:pointer"><div class="who">' + c.g + '</div><h4>' + c.n +
+    '</h4><p>' + c.d + '</p></div>'
+  ).join("");
+  box.querySelectorAll("[data-id]").forEach(el => {
+    el.onclick = () => {
+      // 从候选总览进来 = 没有答题路径，清掉上一条路径的残留，避免拿别人的依据冒充这一条
+      visited = [];
+      reachedLeaf = null;
+      state = {};
+      renderResult(el.getAttribute("data-id"));
+    };
+  });
+  show("catalog");
+}
+
+function restart(){
+  visited = [];
+  cursor = null;
+  state = {};
+  reachedLeaf = null;
+  go("q0");
+}
+
+$("btnStart").onclick = restart;
+$("btnBack").onclick = back;
+$("btnRestart").onclick = restart;
+$("btnCatalog").onclick = renderCatalog;
+$("btnCatalog2").onclick = renderCatalog;
+$("btnBackHome").onclick = () => show("start");
+
+document.addEventListener("keydown", e => {
+  if (screens.quiz.classList.contains("hide")) return;
+  if (e.key === "Backspace"){ e.preventDefault(); back(); return; }
+  const i = ["1","2","3","4"].indexOf(e.key);
+  if (i >= 0){
+    const btns = $("qOpts").querySelectorAll(".opt");
+    if (btns[i]) { e.preventDefault(); btns[i].click(); }
+  }
+});
+</script>
+</body>
+</html>
