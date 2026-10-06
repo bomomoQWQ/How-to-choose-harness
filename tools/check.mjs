@@ -271,6 +271,27 @@ if (data) {
   satBad.length ? bad("讽刺作品块问题: " + satBad.join("; "))
                 : ok("讽刺作品块完整（" + SATIRE.stanzas.length + " 段歌词 / " + refCount + " 条对应说明，其中 " + refLink + " 条带可点来源）");
 
+  // 5p. 挂载关系：条目按厂商挂到结论页，且不能有孤儿数据
+  const vendors = (EVENTS || []).map(g => g.vendor);
+  let embBad = [];
+  const embedded = new Set();
+  for (const [rid, r] of Object.entries(RESULTS)) {
+    if (!r.embedEvents) continue;
+    if (!vendors.includes(r.embedEvents)) embBad.push(rid + ".embedEvents 指向不存在的组: " + r.embedEvents);
+    else embedded.add(r.embedEvents);
+  }
+  const orphan = vendors.filter(v => !embedded.has(v));
+  if (orphan.length) embBad.push("有组没挂到任何结论页（孤儿数据）: " + orphan.join("、"));
+  const satOwners = Object.entries(RESULTS).filter(([, r]) => r.embedSatire).map(([k]) => k);
+  if (satOwners.length !== 1) embBad.push("embedSatire 应当只有一处，实际: " + satOwners.join(","));
+  embBad.length ? bad("挂载关系问题: " + embBad.join("; "))
+                : ok("记录按厂商挂到 " + embedded.size + " 个结论页，无孤儿数据；歌词挂在 " + satOwners[0]);
+
+  // 5q. 独立事件清单页必须已经不在了（避免留死代码）
+  const deadUI = ["screen-events", "btnEvents", "evBody"].filter(s => html.includes(s));
+  deadUI.length ? bad("独立事件清单页的残留: " + deadUI.join(", "))
+                : ok("独立事件清单页与其入口已彻底移除");
+
   console.log("叶子: " + [...leaves].sort().join(", "));
 }
 

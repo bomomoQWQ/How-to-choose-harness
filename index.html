@@ -218,7 +218,6 @@
       <p>回答几个问题，直接给你该装的那一个</p>
     </div>
     <div class="spacer"></div>
-    <button class="ghost" id="btnEvents">厂商事件清单</button>
     <button class="ghost" id="btnCatalog">全部候选</button>
   </header>
 
@@ -274,18 +273,6 @@
     </div>
   </section>
 
-  <section id="screen-events" class="panel hide">
-    <h2>厂商事件清单</h2>
-    <p class="lead">
-      每条都给出来源，按时间排。列这些不是为了骂谁，而是因为<strong>选工具本质上是在选你要信任谁</strong>——
-      那就把各家的记录摆出来，你自己判断。国产、国外一视同仁，DeepSeek 和 OpenAI 的问题也在里面。
-    </p>
-    <div id="evBody"></div>
-    <div class="row">
-      <button class="btn sec" id="btnBackHome2">← 回到开始</button>
-    </div>
-  </section>
-
   <footer>
     <p>
       <b>说明：</b>本页是个人经验整理，不是官方文档。命令与链接以各项目官方页面为准。
@@ -297,7 +284,7 @@
       Anthropic 技术团队成员已公开承认该机制存在，中国国家漏洞库（CNVDB）通报受影响版本 2.1.91–2.1.196 为安全后门漏洞，阿里内部要求全员卸载，同期还有强制人脸实名与大规模封号；2026 年 7 月 21 日，其 15 亿美元版权和解获批；
       2026 年 9 月，ZCode 被发现把包含 .git 历史、reflog 与云凭证的整个工作区静默打包上传，智谱致歉、移除上传链路并宣布开源——
       但其开源的完整性受到质疑：仓库历史被洗净、锁 PR 关 Issue，属单向投喂（社区称「阴阳开源」）。
-      页首「厂商事件清单」按时间列了全部记录，每条都给出来源；DeepSeek、OpenAI 的问题同样在里面。
+      页首「厂商事件清单」已取消，各家记录直接挂在对应结论页上（Claude Code 那页最全，含社区讽刺歌词《安全对齐》；智谱挂在 GLM 页、中转挂在避坑页、Grok Build 等挂在数据边界页）。
       信息基线：2026 年 10 月。
     </p>
   </footer>
@@ -356,6 +343,7 @@ const RESULTS = {
       {t:"警惕 AI 时代的特洛伊木马（环球时报社评·英文）",u:"http://en.people.cn/n3/2026/0710/c90000-20476592.html"},
       {t:"Claude 封号自救指南（社区）",u:"https://github.com/WanjingAI/claude-fenghao-guide"}
     ],
+    embedEvents: "其它厂商",
     alts: ["cn-cli","opencode","dsh-cli"],
     pitfalls: [
       "「它承诺不用于训练」和「它有能力用」是两件事。代码开源能缩小这个空间，但前提是<b>开的是完整、可参与、未剥离历史的同一份代码</b>——仓库洗过历史、锁了 PR 关 Issue 的那种，缩小不了多少。",
@@ -727,6 +715,8 @@ const RESULTS = {
       {t:"15 亿美元版权和解（中国文字著作权协会）",u:"http://prccopyright.org.cn/staticnews/2026-07-27/260727103329492/1.html"}
     ],
     personal: { by:"博馍馍", text: PERSONAL_NOTE },
+    embedEvents: "Anthropic / Claude（美国）",
+    embedSatire: true,
     alts: ["zhipu-plan","opencode","cn-cli"],
     sysNotes: {
       win: "Windows 上按官方文档走 WSL 或原生安装，别两套环境混用。",
@@ -769,6 +759,7 @@ const RESULTS = {
       {t:"ZCode 上传事件报道（新浪财经）",u:"https://finance.sina.com.cn/roll/2026-10-01/doc-initstui1351408.shtml"}
     ],
     personal: { by:"博馍馍", text: PERSONAL_NOTE },
+    embedEvents: "智谱 / ZCode（中国）",
     alts: ["cn-cli","opencode","claude-code"],
     sysNotes: {
       win: "Windows 上接 Claude Code 或 Cline 都行；重点是别让它扫全盘，单独给一个工作目录。",
@@ -806,6 +797,7 @@ const RESULTS = {
       {t:"中转站除了掺水还会投毒",u:"https://www.appinn.com/ai-agent-full-access-security-risk/"},
       {t:"中转站关停之后怎么办",u:"https://cloud.tencent.com.cn/developer/article/2706927"}
     ],
+    embedEvents: "中转 API / 代充（灰色链路）",
     alts: ["cn-cli","zhipu-plan","opencode"],
     pitfalls: [
       "数据面：中转能拿到你发给模型的全部内容，包括源码和密钥；已有报告指出存在掺水与投毒。",
@@ -1189,8 +1181,7 @@ const screens = {
   start: $("screen-start"),
   quiz: $("screen-quiz"),
   result: $("screen-result"),
-  catalog: $("screen-catalog"),
-  events: $("screen-events")
+  catalog: $("screen-catalog")
 };
 let visited = [];
 let cursor = null;
@@ -1391,6 +1382,15 @@ function renderResult(id){
     html += '</ul></div>';
   }
 
+  /* 这家厂商的记录：条目按厂商挂到对应结论页，数据仍只有 EVENTS 一份 */
+  if (r.embedEvents){
+    const g = findEventGroup(r.embedEvents);
+    if (g){
+      html += '<h3 class="sec">它的记录（每条都带来源）</h3>';
+      html += evGroupHTML(g);
+    }
+  }
+
   if (r.links && r.links.length){
     html += '<h3 class="sec">相关链接</h3><div class="links">';
     r.links.forEach(l => html += '<a class="link" href="' + l.u + '" target="_blank" rel="noopener">' + l.t + ' ↗</a>');
@@ -1406,6 +1406,10 @@ function renderResult(id){
     });
     html += '</div>';
   }
+
+  /* 讽刺歌词固定排在最后：事实在前，讽刺在后 */
+  if (r.embedSatire) html += satireHTML();
+
   html += '</div>';
 
   $("resBody").innerHTML = html;
@@ -1444,26 +1448,31 @@ function renderCatalog(){
   show("catalog");
 }
 
-function renderEvents(){
-  const box = $("evBody");
-  let html = "";
-  EVENTS.forEach(g => {
-    html += '<div class="evgrp"><h4>' + g.vendor + (g.note ? '<span>' + g.note + '</span>' : '') + '</h4>';
-    g.items.forEach(it => {
-      html += '<div class="ev' + (it.bad ? ' bad' : '') + '">' +
-                '<div class="d">' + it.d + '</div>' +
-                '<div class="t">' + it.t + '</div>' +
-                '<div class="x">' + it.x + '</div>' +
-                (it.s ? '<a class="s" href="' + it.s.u + '" target="_blank" rel="noopener">来源：' + it.s.t + ' ↗</a>' : '') +
-              '</div>';
-    });
-    html += '</div>';
-  });
+/* ---- 事件清单 / 讽刺歌词的渲染片段：抽出来共用，事件清单页与 Claude Code 结论页共用同一份数据 ---- */
+function evItemsHTML(items){
+  return items.map(it =>
+    '<div class="ev' + (it.bad ? ' bad' : '') + '">' +
+      '<div class="d">' + it.d + '</div>' +
+      '<div class="t">' + it.t + '</div>' +
+      '<div class="x">' + it.x + '</div>' +
+      (it.s ? '<a class="s" href="' + it.s.u + '" target="_blank" rel="noopener">来源：' + it.s.t + ' ↗</a>' : '') +
+    '</div>'
+  ).join("");
+}
 
-  // 讽刺作品单独一块，和上面带来源的条目明确分开
-  html += '<div class="satire">' +
-            '<div class="by">' + SATIRE.by + '：讽刺歌词《' + SATIRE.title + '》</div>' +
-            '<p class="ip">' + SATIRE.intro + '</p>';
+function evGroupHTML(g){
+  return '<div class="evgrp"><h4>' + g.vendor + (g.note ? '<span>' + g.note + '</span>' : '') + '</h4>' +
+         evItemsHTML(g.items) + '</div>';
+}
+
+function findEventGroup(vendor){
+  return EVENTS.filter(g => g.vendor === vendor)[0] || null;
+}
+
+function satireHTML(){
+  let html = '<div class="satire">' +
+               '<div class="by">' + SATIRE.by + '：讽刺歌词《' + SATIRE.title + '》</div>' +
+               '<p class="ip">' + SATIRE.intro + '</p>';
   SATIRE.stanzas.forEach(st => {
     html += '<div class="st">' + st.lines.map(l => '<span>' + l + '</span>').join("") + '</div>';
     if (st.refs && st.refs.length){
@@ -1479,10 +1488,10 @@ function renderEvents(){
     html += '<p class="src">曲源：<a href="' + SATIRE.src.u + '" target="_blank" rel="noopener">' + SATIRE.src.t + ' ↗</a>（B 站页面需验证码，本页未能核实原曲作者与标题）</p>';
   }
   html += '<span class="kind">歌词是讽刺作品，但影射的事实都有出处——逐段已标注并可点开来源。批评点是话术与行为的落差，不是规模、估值或起家早晚；判断依据请以带来源的条目为准，而不是以歌词为准。</span></div>';
-
-  box.innerHTML = html;
-  show("events");
+  return html;
 }
+
+/* 事件条目按厂商挂到各自结论页（见 RESULTS 的 embedEvents / embedSatire） */
 
 function restart(){
   visited = [];
@@ -1497,8 +1506,6 @@ $("btnBack").onclick = back;
 $("btnRestart").onclick = restart;
 $("btnCatalog").onclick = renderCatalog;
 $("btnCatalog2").onclick = renderCatalog;
-$("btnEvents").onclick = renderEvents;
-$("btnBackHome2").onclick = () => show("start");
 $("btnBackHome").onclick = () => show("start");
 
 document.addEventListener("keydown", e => {

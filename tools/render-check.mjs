@@ -151,33 +151,33 @@ ctx.restart(); [0,0,2].forEach(i => ctx.pick(i));                // → dsh-desk
 pn = R();
 expect("其它卡片没有这条附注", !pn.includes("博馍馍"));
 
-console.log("\n== 厂商事件清单 ==");
-["screen-events","evBody"].forEach(id => { if (!els.has(id)) makeEl(id); });
-ctx.renderEvents();
-let ev = els.get("evBody").innerHTML || "";
-expect("事件清单能渲染", ev.length > 2000, ev.length + " 字符");
-expect("含 Anthropic 组", ev.includes("Anthropic / Claude"));
-expect("含智谱组", ev.includes("智谱 / ZCode"));
-expect("含「官方承认」那一条", ev.includes("官方承认机制存在"));
-expect("含隐写回执机制描述", ev.includes("做隐写") || ev.includes("隐写回传"));
-expect("含 CNVDB 通报", ev.includes("CNVDB"));
-expect("含 15 亿美元版权和解", ev.includes("15 亿美元"));
-expect("含国产问题（DeepSeek）", ev.includes("DeepSeek"));
-expect("每条都有来源链接", (ev.match(/来源：/g) || []).length >= 15, "来源×" + (ev.match(/来源：/g) || []).length);
-expect("无 undefined", !ev.includes("undefined"));
-expect("含讽刺歌词《安全对齐》", ev.includes("安全对齐"));
-expect("歌词内容在（自由市场没洁癖）", ev.includes("自由市场没洁癖"));
-expect("明确说歌词每句都有出处", ev.includes("每一句都有出处"));
-expect("说明判断依据是带来源的条目、不是歌词", ev.includes("而不是以歌词为准"));
-expect("「融资5个亿」也给了出处（证券时报）", ev.includes("融资5个亿") && ev.includes("证券时报"));
-expect("对应说明里出现可点来源链接", ev.includes("stcn.com/article/detail/3933448.html"));
-expect("讽刺块排在事实条目之后", ev.indexOf("安全对齐") > ev.indexOf("CNVDB"), "歌@" + ev.indexOf("安全对齐") + " 事实@" + ev.indexOf("CNVDB"));
-expect("带 B 站曲源链接", ev.includes("bilibili.com/video/BV1bBao6xECA"));
-expect("每段歌词都带对应关系块", (ev.match(/<ul class="refs">/g) || []).length >= 5, "refs 块×" + (ev.match(/<ul class="refs">/g) || []).length);
-expect("对应关系指向了具体条目", (ev.match(/对应上面/g) || []).length >= 8, "对应上面×" + (ev.match(/对应上面/g) || []).length);
-expect("对应关系里点了名（CNVDB / 蒸馏争议）", ev.includes("CNVDB 正式通报") && ev.includes("与阿里的蒸馏争议"));
-expect("明确排除「规模/估值/起家早晚」为批评点", ev.includes("不是规模、估值或起家早晚"));
-expect("融资那句标明是铺垫而非指控", ev.includes("这句是铺垫，不是指控"));
+console.log("\n== 厂商记录已挂到对应结论页（独立事件清单页已取消） ==");
+ctx.restart(); [0,0,0,2,2,1,0,0,0].forEach(i => ctx.pick(i));   // → claude-code
+let ce = R();
+expect("Claude Code 页含它的记录区", ce.includes("它的记录（每条都带来源）"));
+expect("含 Anthropic 组", ce.includes("Anthropic / Claude"));
+expect("含「官方承认机制存在」", ce.includes("官方承认机制存在"));
+expect("含 CNVDB 通报", ce.includes("CNVDB"));
+expect("含 15 亿美元版权和解", ce.includes("15 亿美元"));
+expect("含讽刺歌词《安全对齐》", ce.includes("安全对齐"));
+expect("歌词每句都有出处（融资那句带来源）", ce.includes("每一句都有出处") && ce.includes("证券时报"));
+expect("带 B 站曲源链接", ce.includes("bilibili.com/video/BV1bBao6xECA"));
+expect("事实在歌词之前", ce.indexOf("CNVDB") < ce.indexOf("安全对齐"), "事实@" + ce.indexOf("CNVDB") + " 歌@" + ce.indexOf("安全对齐"));
+expect("每条都有来源链接", (ce.match(/来源：/g) || []).length >= 10, "来源×" + (ce.match(/来源：/g) || []).length);
+expect("无 undefined", !ce.includes("undefined"));
+
+ctx.restart(); [0,0,0,2,2,1,0,0,2,0].forEach(i => ctx.pick(i));  // → zhipu-plan
+let zp = R();
+expect("GLM 页含智谱记录组", zp.includes("智谱 / ZCode") && zp.includes("阴阳开源"));
+expect("GLM 页没有歌词（歌词只在 Claude Code 页）", !zp.includes("安全对齐"));
+
+ctx.restart(); [0,0,0,0,1].forEach(i => ctx.pick(i));            // → databoundary
+let db = R();
+expect("数据边界页含「其它厂商」组", db.includes("其它厂商") && db.includes("Grok Build"));
+
+ctx.restart(); [0,0,0,0,2,1,0,0,3].forEach(i => ctx.pick(i));    // → relay-risk
+let rr = R();
+expect("避坑页含中转组", rr.includes("中转 API / 代充") && rr.includes("掺水"));
 
 console.log("\n== 逐叶子渲染（从「全部候选」直接打开、无答题路径） ==");
 const all = Object.keys(vm.runInContext("RESULTS", ctx));
