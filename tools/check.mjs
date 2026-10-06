@@ -249,13 +249,27 @@ if (data) {
   if (!SATIRE || !SATIRE.title) satBad.push("SATIRE 缺 title");
   if (!SATIRE || !SATIRE.by) satBad.push("缺署名／出处说明");
   if (!SATIRE || !SATIRE.intro) satBad.push("缺免责说明（它是讽刺不是事实）");
+  if (!SATIRE || !SATIRE.src || !/^https?:\/\//.test(SATIRE.src.u || "")) satBad.push("缺曲源链接");
   if (!SATIRE || !Array.isArray(SATIRE.stanzas) || !SATIRE.stanzas.length) satBad.push("缺歌词段落");
+  let refCount = 0, refLink = 0, noRef = 0;
   (SATIRE && SATIRE.stanzas || []).forEach((st, i) => {
-    if (!Array.isArray(st) || !st.length) satBad.push("第 " + (i+1) + " 段为空");
-    st.forEach(l => { if (/^https?:/.test(l)) satBad.push("歌词里混进了链接"); });
+    if (!Array.isArray(st.lines) || !st.lines.length) satBad.push("第 " + (i+1) + " 段没有歌词行");
+    (st.lines || []).forEach(l => { if (/^https?:/.test(l)) satBad.push("歌词里混进了链接"); });
+    if (!Array.isArray(st.refs) || !st.refs.length) { noRef++; return; }
+    st.refs.forEach(r => {
+      const x = (typeof r === "string") ? r : r.x;
+      if (!x || x.length < 8) satBad.push("第 " + (i+1) + " 段有对应说明过短或为空");
+      if (typeof r === "object" && r.s){
+        if (!/^https?:\/\//.test(r.s.u || "")) satBad.push("第 " + (i+1) + " 段对应说明的来源链接非法");
+        else if (!r.s.t) satBad.push("第 " + (i+1) + " 段来源缺名字");
+        else refLink++;
+      }
+      refCount++;
+    });
   });
+  if (noRef) satBad.push(noRef + " 段没有「对应哪条记录」的说明");
   satBad.length ? bad("讽刺作品块问题: " + satBad.join("; "))
-                : ok("讽刺作品块完整（" + SATIRE.stanzas.length + " 段），且标注了「不是事实陈述」");
+                : ok("讽刺作品块完整（" + SATIRE.stanzas.length + " 段歌词 / " + refCount + " 条对应说明，其中 " + refLink + " 条带可点来源）");
 
   console.log("叶子: " + [...leaves].sort().join(", "));
 }

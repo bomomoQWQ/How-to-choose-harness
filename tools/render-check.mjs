@@ -167,8 +167,17 @@ expect("每条都有来源链接", (ev.match(/来源：/g) || []).length >= 15, 
 expect("无 undefined", !ev.includes("undefined"));
 expect("含讽刺歌词《安全对齐》", ev.includes("安全对齐"));
 expect("歌词内容在（自由市场没洁癖）", ev.includes("自由市场没洁癖"));
-expect("标明它是讽刺、不是事实", ev.includes("不是事实陈述"));
+expect("明确说歌词每句都有出处", ev.includes("每一句都有出处"));
+expect("说明判断依据是带来源的条目、不是歌词", ev.includes("而不是以歌词为准"));
+expect("「融资5个亿」也给了出处（证券时报）", ev.includes("融资5个亿") && ev.includes("证券时报"));
+expect("对应说明里出现可点来源链接", ev.includes("stcn.com/article/detail/3933448.html"));
 expect("讽刺块排在事实条目之后", ev.indexOf("安全对齐") > ev.indexOf("CNVDB"), "歌@" + ev.indexOf("安全对齐") + " 事实@" + ev.indexOf("CNVDB"));
+expect("带 B 站曲源链接", ev.includes("bilibili.com/video/BV1bBao6xECA"));
+expect("每段歌词都带对应关系块", (ev.match(/<ul class="refs">/g) || []).length >= 5, "refs 块×" + (ev.match(/<ul class="refs">/g) || []).length);
+expect("对应关系指向了具体条目", (ev.match(/对应上面/g) || []).length >= 8, "对应上面×" + (ev.match(/对应上面/g) || []).length);
+expect("对应关系里点了名（CNVDB / 蒸馏争议）", ev.includes("CNVDB 正式通报") && ev.includes("与阿里的蒸馏争议"));
+expect("明确排除「规模/估值/起家早晚」为批评点", ev.includes("不是规模、估值或起家早晚"));
+expect("融资那句标明是铺垫而非指控", ev.includes("这句是铺垫，不是指控"));
 
 console.log("\n== 逐叶子渲染（从「全部候选」直接打开、无答题路径） ==");
 const all = Object.keys(vm.runInContext("RESULTS", ctx));
